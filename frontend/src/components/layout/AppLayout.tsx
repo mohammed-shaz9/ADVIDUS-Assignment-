@@ -7,12 +7,13 @@ interface AppLayoutProps {
   user: User;
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
+  onLogout: () => void;
   pageTitle: string;
   children: React.ReactNode;
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
-  user, activeTab, onTabChange, pageTitle, children,
+  user, activeTab, onTabChange, onLogout, pageTitle, children,
 }) => {
   const getFormattedDate = () => {
     const options: Intl.DateTimeFormatOptions = {
@@ -23,7 +24,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
   return (
     <div className="app">
-      <Sidebar user={user} activeTab={activeTab} onTabChange={onTabChange} onLogout={() => {}} />
+      <Sidebar user={user} activeTab={activeTab} onTabChange={onTabChange} onLogout={onLogout} />
       <div className="main">
         <Topbar user={user} pageTitle={pageTitle} pageSub={getFormattedDate()} />
         <div className="content">

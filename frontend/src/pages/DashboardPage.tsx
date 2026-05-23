@@ -20,6 +20,9 @@ import { OrganizationPage } from './OrganizationPage';
 import { ApprovalsPage } from './ApprovalsPage';
 import { AnalyticsPage } from './AnalyticsPage';
 import { PerformancePage } from './PerformancePage';
+import { TemplatesPage } from './TemplatesPage';
+import { SettingsPage } from './SettingsPage';
+import { IntegrationsPage } from './IntegrationsPage';
 import { TabType, Task } from '../types';
 
 const DashboardPage: React.FC = () => {
@@ -262,7 +265,9 @@ const DashboardPage: React.FC = () => {
       case 'activity': return 'Security Audit Streams';
       case 'analytics': return 'Analytics & Insights';
       case 'performance': return 'Performance Scoring';
-      case 'settings': return 'Enterprise Console Settings';
+      case 'templates': return 'Task Template Library';
+      case 'integrations': return 'Integrations';
+      case 'settings': return 'Settings';
       default: return '';
     }
   };
@@ -273,6 +278,7 @@ const DashboardPage: React.FC = () => {
         user={user!}
         activeTab={activeTab}
         onTabChange={handleTabChange}
+        onLogout={handleLogout}
         pageTitle={getPageTitle()}
       >
         {activeTab === 'dashboard' && isAdmin && (
@@ -372,30 +378,9 @@ const DashboardPage: React.FC = () => {
         {activeTab === 'approvals' && isAdmin && <ApprovalsPage />}
         {activeTab === 'analytics' && isAdmin && <AnalyticsPage />}
         {activeTab === 'performance' && isAdmin && <PerformancePage />}
-
-        {activeTab === 'settings' && (
-          <div className="panel animate-slide-up">
-            <div className="panel-header">
-              <span className="panel-title">Enterprise Console Settings</span>
-            </div>
-            <div className="panel-body" style={{ padding: '24px' }}>
-              <div className="form-group">
-                <label className="form-label">Account Information</label>
-                <div style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.8 }}>
-                  <div><strong>Name:</strong> {user?.name}</div>
-                  <div><strong>Email:</strong> {user?.email}</div>
-                  <div><strong>Role:</strong> {user?.role}</div>
-                  <div><strong>Status:</strong> {user?.status}</div>
-                </div>
-              </div>
-              <div style={{ marginTop: '24px' }}>
-                <button className="btn-secondary" onClick={handleLogout}>
-                  <i className="ti ti-logout" style={{ marginRight: '6px' }}></i> Sign Out
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {activeTab === 'templates' && isAdmin && <TemplatesPage />}
+        {activeTab === 'integrations' && isAdmin && <IntegrationsPage />}
+        {activeTab === 'settings' && <SettingsPage />}
       </AppLayout>
 
       <TaskFormModal

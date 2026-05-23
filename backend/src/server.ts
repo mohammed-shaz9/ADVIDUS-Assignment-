@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken';
 import { connectDB } from './config/db.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
-import { setIO } from './utils/realtime.js';
+import { setIO, registerUserSocket, unregisterUserSocket } from './utils/realtime.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import authRoutes from './routes/authRoutes.js';
@@ -27,8 +27,12 @@ import orgRoutes from './routes/orgRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
 import approvalRoutes from './routes/approvalRoutes.js';
 import performanceRoutes from './routes/performanceRoutes.js';
+import templateRoutes from './routes/templateRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
 import User from './models/User.js';
 import { seed } from './seed.js';
+import { seedDefaults } from './services/settingsService.js';
 
 // Connect to Database
 await connectDB();
@@ -39,6 +43,9 @@ if (userCount === 0) {
   logger.info('Database empty — seeding...');
   await seed();
 }
+
+// Seed default settings
+await seedDefaults();
 
 const app = express();
 const server = http.createServer(app);
@@ -80,6 +87,9 @@ app.use('/api/org', orgRoutes);
 app.use('/api/tasks/:taskId/comments', commentRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/performance', performanceRoutes);
+app.use('/api/templates', templateRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Error handling
 app.use(notFoundHandler);
@@ -116,9 +126,14 @@ io.use(async (socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  if ((socket as any).user?.role === 'admin') {
-    socket.join('admins');
+  const user = (socket as any).user;
+  if (user) {
+    registerUserSocket(user._id.toString(), socket.id);
+    if (user.role === 'admin') socket.join('admins');
   }
+  socket.on('disconnect', () => {
+    if (user) unregisterUserSocket(user._id.toString(), socket.id);
+  });
 });
 
 setIO(io);

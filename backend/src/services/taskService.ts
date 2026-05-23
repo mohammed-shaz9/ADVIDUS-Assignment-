@@ -4,6 +4,7 @@ import { executeAgentTask } from '../utils/agentExecutor.js';
 import { emitEvent } from '../utils/realtime.js';
 import { NotFoundError, ForbiddenError } from '../errors/AppError.js';
 import { TaskCounts } from '../types/index.js';
+import { createNotification } from './notificationService.js';
 
 export const createTask = async (
   title: string,
@@ -20,6 +21,16 @@ export const createTask = async (
 
   await logActivity(ownerId, 'TASK_CREATED', `Created task: "${title}"`);
   emitEvent('task.created', { taskId: task._id.toString() });
+
+  if (task.assignedTo?.user && task.assignedTo.user.toString() !== ownerId) {
+    createNotification(
+      task.assignedTo.user.toString(),
+      'task_assigned',
+      'New Task Assigned',
+      `You have been assigned: "${title}"`,
+      `/tasks/${task._id}`
+    );
+  }
 
   if (task.assignedTo?.assigneeType === 'agent' && task.assignedTo.agent) {
     executeAgentTask(task._id.toString());
@@ -118,6 +129,16 @@ export const updateTask = async (
     .populate('assignedTo.agent', 'name role modelName status');
 
   emitEvent('task.updated', { taskId: populated!._id.toString(), status: populated!.status });
+
+  if (updates.status && updates.status !== oldStatus && task.owner.toString() !== userId) {
+    createNotification(
+      task.owner.toString(),
+      'status_change',
+      `Task ${updates.status === 'completed' ? 'Completed' : 'Status Updated'}`,
+      `"${task.title}" is now ${updates.status.replace('_', ' ')}`,
+      `/tasks/${task._id}`
+    );
+  }
 
   return populated;
 };

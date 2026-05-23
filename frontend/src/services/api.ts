@@ -160,3 +160,35 @@ export const performanceApi = {
   getAllPerformance: () => request<ApiResponse<PerformanceScore[]>>('/performance/all'),
   takeSnapshot: () => request<ApiResponse<{ message: string }>>('/performance/snapshot', { method: 'POST' }),
 };
+
+export const templatesApi = {
+  getAll: (activeOnly = false) =>
+    request<ApiResponse<TaskTemplate[]>>(`/templates${activeOnly ? '?active=true' : ''}`),
+  get: (id: string) => request<ApiResponse<TaskTemplate>>(`/templates/${id}`),
+  create: (data: Partial<TaskTemplate>) =>
+    request<ApiResponse<TaskTemplate>>('/templates', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<TaskTemplate>) =>
+    request<ApiResponse<TaskTemplate>>(`/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    request<ApiResponse<null>>(`/templates/${id}`, { method: 'DELETE' }),
+  generate: (templateId: string, assigneeId: string) =>
+    request<ApiResponse<Task>>(`/templates/${templateId}/generate`, { method: 'POST', body: JSON.stringify({ assigneeId }) }),
+};
+
+export const notificationsApi = {
+  getAll: () => request<ApiResponse<Notification[]> & { unreadCount: number }>('/notifications'),
+  getUnreadCount: () => request<ApiResponse<{ count: number }>>('/notifications/unread-count'),
+  markAsRead: (id: string) =>
+    request<ApiResponse<Notification>>(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllAsRead: () =>
+    request<ApiResponse<{ message: string }>>('/notifications/read-all', { method: 'POST' }),
+};
+
+export const settingsApi = {
+  getAll: (group?: string) =>
+    request<ApiResponse<SystemSetting[]>>(`/settings${group ? `?group=${group}` : ''}`),
+  update: (key: string, value: string) =>
+    request<ApiResponse<SystemSetting>>(`/settings/${key}`, { method: 'PUT', body: JSON.stringify({ value }) }),
+  getIntegrations: () =>
+    request<ApiResponse<Integration[]>>('/settings/integrations'),
+};
