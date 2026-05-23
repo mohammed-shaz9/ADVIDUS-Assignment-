@@ -179,4 +179,46 @@ export type ExtendedAnalytics = Analytics & {
   }[];
 };
 
-export type TabType = 'dashboard' | 'users' | 'tasks' | 'activity' | 'org' | 'approvals' | 'performance' | 'analytics' | 'settings';
+export interface Notification {
+  _id: string;
+  userId: string;
+  type: 'task_assigned' | 'task_updated' | 'approval_requested' | 'approval_decided' | 'comment_added' | 'status_change' | 'system';
+  title: string;
+  message: string;
+  link?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface TaskTemplate {
+  _id: string;
+  name: string;
+  description?: string;
+  defaultTitle?: string;
+  defaultDescription?: string;
+  defaultPriority: 'low' | 'medium' | 'high' | 'critical';
+  checklistSteps: Array<{ text: string; completed?: boolean }>;
+  isRecurring: boolean;
+  recurrenceRule?: 'daily' | 'weekly' | 'monthly';
+  isActive: boolean;
+  version: number;
+  createdBy: Pick<User, '_id' | 'name' | 'email'>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SystemSetting {
+  _id: string;
+  key: string;
+  value: string;
+  group: 'general' | 'notifications' | 'tasks' | 'security' | 'integrations';
+  description?: string;
+}
+
+export interface Integration {
+  name: string;
+  status: 'connected' | 'disconnected' | 'error';
+  description?: string;
+}
+
+export type TabType = 'dashboard' | 'users' | 'tasks' | 'activity' | 'org' | 'approvals' | 'performance' | 'analytics' | 'templates' | 'settings' | 'integrations';

@@ -11,9 +11,10 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, onTabChange, onLogout }) => {
   const navItems: Array<{ tab: TabType; label: string; icon: string; adminOnly?: boolean }> = [
     { tab: 'dashboard', label: 'Dashboard', icon: 'ti ti-layout-dashboard', adminOnly: true },
-    { tab: 'users', label: 'Users', icon: 'ti ti-users', adminOnly: true },
-    { tab: 'org', label: 'Organization', icon: 'ti ti-building-community', adminOnly: true },
     { tab: 'tasks', label: 'Tasks', icon: 'ti ti-checklist' },
+    { tab: 'users', label: 'Users', icon: 'ti ti-users', adminOnly: true },
+    { tab: 'templates', label: 'Templates', icon: 'ti ti-files', adminOnly: true },
+    { tab: 'org', label: 'Organization', icon: 'ti ti-building-community', adminOnly: true },
     { tab: 'approvals', label: 'Approvals', icon: 'ti ti-circle-check', adminOnly: true },
     { tab: 'activity', label: 'Audit Log', icon: 'ti ti-activity', adminOnly: true },
     { tab: 'analytics', label: 'Analytics', icon: 'ti ti-chart-bar', adminOnly: true },
@@ -45,6 +46,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, onTabChange, 
 
       <div className="nav-section" style={{ marginTop: '8px' }}>
         <div className="nav-label">System</div>
+        <div
+          className={`nav-item ${activeTab === 'integrations' ? 'active' : ''}`}
+          onClick={() => onTabChange('integrations')}
+        >
+          <i className="ti ti-plug" aria-hidden="true"></i> Integrations
+        </div>
         <div
           className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => onTabChange('settings')}
