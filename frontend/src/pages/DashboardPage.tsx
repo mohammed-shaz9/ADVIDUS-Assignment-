@@ -38,6 +38,7 @@ const DashboardPage: React.FC = () => {
   const {
     users: adminUsers, tasks: adminTasks, logs: adminLogs, agents: adminAgents,
     analytics, metrics, loading: loadingAdmin, fetchAllAdminData, fetchMetrics, fetchAnalytics,
+    fetchUsers, fetchTasks, fetchLogs,
     toggleUserStatus, deleteUser, forceDeleteTask,
     createAgent, toggleAgentStatus, deleteAgent,
   } = useAdmin();
@@ -119,22 +120,33 @@ const DashboardPage: React.FC = () => {
   // Polling — every 4s to make numbers look alive for HR demo
   useEffect(() => {
     if (!token) return;
-    const interval = setInterval(fetchTaskSummary, 4000);
+    fetchTaskSummary();
+    fetchUserTasks();
+    const interval = setInterval(() => {
+      fetchTaskSummary();
+      fetchUserTasks();
+    }, 4000);
     return () => clearInterval(interval);
-  }, [token, fetchTaskSummary]);
+  }, [token, fetchTaskSummary, fetchUserTasks]);
 
   useEffect(() => {
     if (!token || !isAdmin) return;
     simulateActivity();
     fetchMetrics();
     fetchAnalytics();
+    fetchUsers();
+    fetchLogs();
+    fetchTasks();
     const interval = setInterval(() => {
       simulateActivity();
       fetchMetrics();
       fetchAnalytics();
+      fetchUsers();
+      fetchLogs();
+      fetchTasks();
     }, 4000);
     return () => clearInterval(interval);
-  }, [token, isAdmin, fetchMetrics, fetchAnalytics, simulateActivity]);
+  }, [token, isAdmin, fetchMetrics, fetchAnalytics, fetchUsers, fetchLogs, fetchTasks, simulateActivity]);
 
   // DnD state
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
