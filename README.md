@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Avidus Interactive — Premium RBAC Task Manager
 
 Enterprise-grade **Role-Based Access Control** system with AI-powered task delegation, 7-module architecture, real-time audit trails, and full Docker deployment.
@@ -155,3 +156,7 @@ Full spec: [`openapi.yml`](./openapi.yml)
 ## Project Status
 
 Developed as a senior engineering demonstration. All 7 modules implemented, Docker-deployed, 1000+ data points, TypeScript strict mode throughout. See [`SUBMISSION.md`](./SUBMISSION.md) for the HR-facing summary.
+=======
+# ADVIDUS Assignment
+Full-stack RBAC Task Manager
+>>>>>>> main
