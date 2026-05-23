@@ -72,6 +72,7 @@ const taskSchema = new Schema<ITaskDocument>(
 
 taskSchema.index({ owner: 1, status: 1, createdAt: -1 });
 taskSchema.index({ status: 1, createdAt: -1 });
+taskSchema.index({ title: 'text', description: 'text' });
 
 const Task: Model<ITaskDocument> = mongoose.model<ITaskDocument>('Task', taskSchema);
 export default Task;

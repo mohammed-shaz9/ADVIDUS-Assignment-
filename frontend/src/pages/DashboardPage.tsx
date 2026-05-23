@@ -73,7 +73,7 @@ const DashboardPage: React.FC = () => {
     };
 
     checkUserStatus();
-    const interval = setInterval(checkUserStatus, 5000);
+    const interval = setInterval(checkUserStatus, 30000);
     return () => clearInterval(interval);
   }, [token, logout, addToast]);
 
@@ -105,7 +105,7 @@ const DashboardPage: React.FC = () => {
   // Polling
   useEffect(() => {
     if (!token) return;
-    const interval = setInterval(fetchTaskSummary, 5000);
+    const interval = setInterval(fetchTaskSummary, 15000);
     return () => clearInterval(interval);
   }, [token, fetchTaskSummary]);
 
