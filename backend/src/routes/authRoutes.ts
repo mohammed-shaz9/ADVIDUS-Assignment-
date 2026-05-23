@@ -10,5 +10,6 @@ router.post('/register', authLimiter, validateRegister, authController.registerU
 router.post('/login', authLimiter, validateLogin, authController.loginUser);
 router.get('/me', protect, authController.getMe);
 router.post('/ensure-demo', authController.ensureDemo);
+router.get('/credentials', authController.getCredentials);
 
 export default router;

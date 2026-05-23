@@ -455,7 +455,7 @@ const DashboardPage: React.FC = () => {
 
         {activeTab === 'org' && isAdmin && <OrganizationPage />}
         {activeTab === 'approvals' && isAdmin && <ApprovalsPage />}
-        {activeTab === 'analytics' && isAdmin && <AnalyticsPage />}
+        {activeTab === 'analytics' && <AnalyticsPage />}
         {activeTab === 'performance' && isAdmin && <PerformancePage />}
         {activeTab === 'templates' && isAdmin && <TemplatesPage />}
         {activeTab === 'integrations' && isAdmin && <IntegrationsPage />}

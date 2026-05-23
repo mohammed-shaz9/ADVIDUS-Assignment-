@@ -39,3 +39,10 @@ export const ensureDemo = async (_req: AuthenticatedRequest, res: Response, next
     next(error);
   }
 };
+
+export const getCredentials = async (_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const creds = await authService.getDemoCredentials();
+    res.json({ success: true, data: creds, serverTime: new Date().toISOString() });
+  } catch (error) { next(error); }
+};

@@ -85,22 +85,27 @@ export const getMe = async (userId: string) => {
   };
 };
 
-const DEMO_USERS = [
-  { name: 'Alice Johnson', email: 'alice@demo.com', role: 'user' as const, phone: '+919000000001' },
-  { name: 'Bob Williams', email: 'bob@demo.com', role: 'user' as const, phone: '+919000000002' },
-  { name: 'Charlie Brown', email: 'charlie@demo.com', role: 'user' as const, phone: '+919000000003' },
-  { name: 'Diana Prince', email: 'diana@demo.com', role: 'user' as const, phone: '+919000000004' },
-  { name: 'Eve Martinez', email: 'eve@demo.com', role: 'user' as const, phone: '+919000000005' },
-];
+const DEMO_NAMES = ['Raj Patel', 'Priya Sharma', 'Amit Singh', 'Sneha Reddy', 'Vikram Joshi'];
 
 export const ensureDemoUsers = async () => {
+  const existing = await User.find({ role: 'user' }).limit(5).select('name email');
   const created: string[] = [];
-  for (const u of DEMO_USERS) {
-    const exists = await User.findOne({ email: u.email });
-    if (!exists) {
-      await User.create({ ...u, password: 'User@123', status: 'active' });
-      created.push(u.email);
+  if (existing.length < 5) {
+    const needed = 5 - existing.length;
+    for (let i = 0; i < needed; i++) {
+      const name = DEMO_NAMES[existing.length + i];
+      const email = `${name.toLowerCase().replace(/\s+/g, '.')}@demo.com`;
+      const exists = await User.findOne({ email });
+      if (!exists) {
+        await User.create({ name, email, password: 'User@123', role: 'user', status: 'active' });
+        created.push(email);
+      }
     }
   }
-  return { message: 'Demo users ensured', created, total: DEMO_USERS.length };
+  return { message: 'Demo users ensured', created, total: 5 };
+};
+
+export const getDemoCredentials = async () => {
+  const users = await User.find({ role: 'user' }).limit(5).select('name email role');
+  return users.map(u => ({ name: u.name, email: u.email, role: u.role }));
 };

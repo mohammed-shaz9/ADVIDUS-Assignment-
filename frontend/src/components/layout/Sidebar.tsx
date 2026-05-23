@@ -48,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, onTabChange, 
     {
       title: 'INTELLIGENCE',
       items: [
-        { tab: 'analytics', label: 'Reporting & Analytics', icon: 'ti ti-chart-bar', adminOnly: true },
+        { tab: 'analytics', label: 'Reporting & Analytics', icon: 'ti ti-chart-bar' },
         { tab: 'performance', label: 'Performance', icon: 'ti ti-trending-up' },
       ],
     },

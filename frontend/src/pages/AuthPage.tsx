@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../contexts/AuthContext';
 
+interface DemoUser {
+  name: string;
+  email: string;
+  role: string;
+}
+
 const AuthPage: React.FC = () => {
   const { login, register, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
@@ -9,9 +15,17 @@ const AuthPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [demoUsers, setDemoUsers] = useState<DemoUser[]>([]);
 
   useEffect(() => {
-    fetch(`${API_URL}/auth/ensure-demo`, { method: 'POST' }).catch(() => {});
+    (async () => {
+      try {
+        await fetch(`${API_URL}/auth/ensure-demo`, { method: 'POST' });
+        const res = await fetch(`${API_URL}/auth/credentials`);
+        const json = await res.json();
+        if (json.success) setDemoUsers(json.data);
+      } catch {}
+    })();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +71,7 @@ const AuthPage: React.FC = () => {
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px' }}>
-            <img src="/Screenshot%202026-05-24%20010501.png" alt="Logo" style={{ height: '48px', borderRadius: '8px' }} />
+            <img src="/Screenshot%202026-05-24%20010501.png" alt="Logo" style={{ height: '56px', borderRadius: '8px' }} />
           </div>
 
           <h1 style={{
@@ -207,27 +221,30 @@ const AuthPage: React.FC = () => {
           <div style={{
             marginTop: '28px', padding: '14px', background: 'rgba(255,255,255,0.02)',
             border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: '10px',
-            maxHeight: '180px', overflowY: 'auto',
+            maxHeight: '220px', overflowY: 'auto',
           }}>
             <div style={{
               fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase',
               letterSpacing: '0.8px', fontWeight: 600, marginBottom: '8px',
             }}>Demo Credentials</div>
-            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '11px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '10px', fontFamily: "'JetBrains Mono', monospace" }}>
+              <div style={{ display: 'flex', padding: '4px 6px', color: 'rgba(255,255,255,0.25)', fontWeight: 600 }}>
+                <span style={{ width: '50px' }}>Role</span>
+                <span style={{ flex: 1 }}>Email</span>
+                <span style={{ width: '80px', textAlign: 'right' }}>Password</span>
+              </div>
               {[
-                { name: 'Admin', cred: 'admin@example.com / Admin@123' },
-                { name: 'Alice', cred: 'alice@demo.com / User@123' },
-                { name: 'Bob', cred: 'bob@demo.com / User@123' },
-                { name: 'Charlie', cred: 'charlie@demo.com / User@123' },
-                { name: 'Diana', cred: 'diana@demo.com / User@123' },
-                { name: 'Eve', cred: 'eve@demo.com / User@123' },
+                { role: 'Admin', email: 'admin@example.com', password: 'Admin@123' },
+                ...demoUsers.map(u => ({ role: 'User', email: u.email, password: 'User@123' })),
               ].map((item, idx) => (
                 <div key={idx} style={{
-                  display: 'flex', justifyContent: 'space-between', padding: '5px 6px',
-                  borderRadius: '4px', background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                  display: 'flex', padding: '5px 6px', borderRadius: '4px',
+                  background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                  color: 'rgba(255,255,255,0.5)',
                 }}>
-                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>{item.name}</span>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'JetBrains Mono', monospace", fontSize: '10px' }}>{item.cred}</span>
+                  <span style={{ width: '50px', color: item.role === 'Admin' ? '#6C63FF' : '#22C55E' }}>{item.role}</span>
+                  <span style={{ flex: 1 }}>{item.email}</span>
+                  <span style={{ width: '80px', textAlign: 'right' }}>{item.password}</span>
                 </div>
               ))}
             </div>
