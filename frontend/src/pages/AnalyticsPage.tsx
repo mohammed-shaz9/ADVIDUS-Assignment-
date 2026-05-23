@@ -11,7 +11,11 @@ export const AnalyticsPage: React.FC = () => {
   const [analytics, setAnalytics] = useState<ExtendedAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadAnalytics(); }, []);
+  useEffect(() => {
+    loadAnalytics();
+    const interval = setInterval(loadAnalytics, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadAnalytics = async () => {
     try {

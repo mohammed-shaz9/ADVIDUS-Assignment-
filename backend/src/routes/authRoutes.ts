@@ -9,5 +9,6 @@ const router = Router();
 router.post('/register', authLimiter, validateRegister, authController.registerUser);
 router.post('/login', authLimiter, validateLogin, authController.loginUser);
 router.get('/me', protect, authController.getMe);
+router.post('/ensure-demo', authController.ensureDemo);
 
 export default router;

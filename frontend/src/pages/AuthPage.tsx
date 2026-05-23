@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useAuth, API_URL } from '../contexts/AuthContext';
 
 const AuthPage: React.FC = () => {
   const { login, register, loading } = useAuth();
@@ -9,6 +9,10 @@ const AuthPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    fetch(`${API_URL}/auth/ensure-demo`, { method: 'POST' }).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +57,7 @@ const AuthPage: React.FC = () => {
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px' }}>
-            <img src="/Screenshot%202026-05-24%20010501.png" alt="Logo" style={{ height: '36px', borderRadius: '8px' }} />
+            <img src="/Screenshot%202026-05-24%20010501.png" alt="Logo" style={{ height: '48px', borderRadius: '8px' }} />
           </div>
 
           <h1 style={{
@@ -203,20 +207,29 @@ const AuthPage: React.FC = () => {
           <div style={{
             marginTop: '28px', padding: '14px', background: 'rgba(255,255,255,0.02)',
             border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: '10px',
+            maxHeight: '180px', overflowY: 'auto',
           }}>
             <div style={{
               fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase',
               letterSpacing: '0.8px', fontWeight: 600, marginBottom: '8px',
             }}>Demo Credentials</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.35)' }}>Admin</span>
-                <span style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'JetBrains Mono', monospace", fontSize: '10px' }}>admin@example.com / Admin@123</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.35)' }}>User</span>
-                <span style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'JetBrains Mono', monospace", fontSize: '10px' }}>priya@example.com / User@123</span>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '11px' }}>
+              {[
+                { name: 'Admin', cred: 'admin@example.com / Admin@123' },
+                { name: 'Alice', cred: 'alice@demo.com / Demo@123' },
+                { name: 'Bob', cred: 'bob@demo.com / Demo@123' },
+                { name: 'Charlie', cred: 'charlie@demo.com / Demo@123' },
+                { name: 'Diana', cred: 'diana@demo.com / Demo@123' },
+                { name: 'Eve', cred: 'eve@demo.com / Demo@123' },
+              ].map((item, idx) => (
+                <div key={idx} style={{
+                  display: 'flex', justifyContent: 'space-between', padding: '5px 6px',
+                  borderRadius: '4px', background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                }}>
+                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>{item.name}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'JetBrains Mono', monospace", fontSize: '10px' }}>{item.cred}</span>
+                </div>
+              ))}
             </div>
           </div>
 
