@@ -357,12 +357,62 @@ const DashboardPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div className="view-label">
-                  {isAdmin ? 'Personal Task Board' : 'Focused Taskboard Workspace'}
+                  {isAdmin ? 'Personal Task Board' : 'My Workspace'}
                 </div>
                 <button className="btn-primary" onClick={openCreateModal}>
                   <i className="ti ti-plus" style={{ marginRight: '6px' }}></i> Create Task
                 </button>
               </div>
+
+              {!isAdmin && (
+                <>
+                  <div style={{
+                    background: 'var(--bg-card)', border: '0.5px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)', padding: '16px 18px',
+                    display: 'flex', alignItems: 'center', gap: '14px',
+                  }}>
+                    <div style={{
+                      width: '40px', height: '40px', borderRadius: '10px',
+                      background: 'rgba(108,99,255,0.12)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <i className="ti ti-user" style={{ fontSize: '20px', color: '#6C63FF' }}></i>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Welcome back, {user?.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        Here's your personal task overview.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                    <div className="stat-card">
+                      <div className="stat-icon" style={{ background: 'rgba(245,158,11,0.12)', color: '#F59E0B' }}>
+                        <i className="ti ti-clock"></i>
+                      </div>
+                      <div className="stat-val">{taskSummary?.counts.pending || 0}</div>
+                      <div className="stat-label">Pending</div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-icon" style={{ background: 'rgba(108,99,255,0.12)', color: '#6C63FF' }}>
+                        <i className="ti ti-progress-check"></i>
+                      </div>
+                      <div className="stat-val">{taskSummary?.counts.in_progress || 0}</div>
+                      <div className="stat-label">In Progress</div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-icon" style={{ background: 'rgba(34,197,94,0.12)', color: '#22C55E' }}>
+                        <i className="ti ti-check"></i>
+                      </div>
+                      <div className="stat-val">{taskSummary?.counts.completed || 0}</div>
+                      <div className="stat-label">Completed</div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <KanbanBoard
                 tasks={myTasksFiltered}

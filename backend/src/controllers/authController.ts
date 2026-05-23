@@ -30,3 +30,12 @@ export const getMe = async (req: AuthenticatedRequest, res: Response, next: Next
     next(error);
   }
 };
+
+export const ensureDemo = async (_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const result = await authService.ensureDemoUsers();
+    res.json({ success: true, ...result, serverTime: new Date().toISOString() });
+  } catch (error) {
+    next(error);
+  }
+};

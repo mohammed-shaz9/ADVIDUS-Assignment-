@@ -73,7 +73,7 @@ body {
 
 /* Brand */
 .logo { display: flex; align-items: center; gap: 10px; padding: 0 8px; margin-bottom: 24px; }
-.logo-icon { width: 30px; height: 30px; border-radius: 7px; background: linear-gradient(135deg, #3b82f6, #6366f1); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; flex-shrink: 0; }
+.logo-icon { width: 40px; height: 40px; border-radius: 7px; background: linear-gradient(135deg, #3b82f6, #6366f1); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; flex-shrink: 0; }
 .logo-text { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; color: #fff; line-height: 1.2; }
 .logo-sub { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 0.02em; }
 
@@ -115,7 +115,7 @@ body {
 .user-role { font-size: 10px; color: rgba(255,255,255,0.35); text-transform: capitalize; }
 
 /* Main Area */
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; background: var(--bg-primary); }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; background: var(--bg-secondary); }
 .topbar {
   height: var(--topbar-height); display: flex; align-items: center; justify-content: space-between;
   padding: 0 28px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;

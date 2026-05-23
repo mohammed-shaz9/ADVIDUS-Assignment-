@@ -84,3 +84,23 @@ export const getMe = async (userId: string) => {
     lastLogin: user.lastLogin,
   };
 };
+
+const DEMO_USERS = [
+  { name: 'Alice Johnson', email: 'alice@demo.com', role: 'user' as const, phone: '+919000000001' },
+  { name: 'Bob Williams', email: 'bob@demo.com', role: 'user' as const, phone: '+919000000002' },
+  { name: 'Charlie Brown', email: 'charlie@demo.com', role: 'user' as const, phone: '+919000000003' },
+  { name: 'Diana Prince', email: 'diana@demo.com', role: 'user' as const, phone: '+919000000004' },
+  { name: 'Eve Martinez', email: 'eve@demo.com', role: 'user' as const, phone: '+919000000005' },
+];
+
+export const ensureDemoUsers = async () => {
+  const created: string[] = [];
+  for (const u of DEMO_USERS) {
+    const exists = await User.findOne({ email: u.email });
+    if (!exists) {
+      await User.create({ ...u, password: 'Demo@123', status: 'active' });
+      created.push(u.email);
+    }
+  }
+  return { message: 'Demo users ensured', created, total: DEMO_USERS.length };
+};
