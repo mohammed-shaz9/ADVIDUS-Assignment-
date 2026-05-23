@@ -53,7 +53,17 @@ const AuthPage: React.FC = () => {
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px' }}>
-            <img src="/logo.png" alt="Logo" style={{ height: '36px', borderRadius: '8px' }} />
+            <div style={{
+              width: '36px', height: '36px', background: '#6C63FF', borderRadius: '10px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 16px rgba(108,99,255,0.3)',
+            }}>
+              <i className="ti ti-bolt" style={{ color: '#fff', fontSize: '18px' }}></i>
+            </div>
+            <span style={{
+              fontSize: '17px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif",
+              color: 'rgba(255,255,255,0.9)', letterSpacing: '0.5px',
+            }}><i>Advidus</i> Interactive</span>
           </div>
 
           <h1 style={{

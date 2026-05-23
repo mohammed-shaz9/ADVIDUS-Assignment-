@@ -64,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, onTabChange, 
   return (
     <div className="sidebar">
       <div className="logo">
-        <img src="/logo.png" alt="Logo" className="logo-icon" />
+        <div className="logo-icon"><i className="ti ti-pencil"></i></div>
         <div>
           <div className="logo-text">TaskFlow</div>
           <div className="logo-sub">Enterprise Platform</div>
