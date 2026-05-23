@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth, API_URL } from '../../contexts/AuthContext';
 import { notificationsApi } from '../../services/api';
-import { Notification } from '../../types';
+import type { Notification as AppNotification } from '../../types';
 
 export const NotificationBell: React.FC = () => {
   const { token, user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
