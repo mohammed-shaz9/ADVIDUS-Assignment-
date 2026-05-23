@@ -4,10 +4,12 @@ import { Doughnut, Bar } from 'react-chartjs-2';
 import { adminApi } from '../services/api';
 import { ExtendedAnalytics } from '../types';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { useAuth, API_URL } from '../contexts/AuthContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement);
 
 export const AnalyticsPage: React.FC = () => {
+  const { token } = useAuth();
   const [analytics, setAnalytics] = useState<ExtendedAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,8 +23,13 @@ export const AnalyticsPage: React.FC = () => {
     try {
       const res = await adminApi.getAnalytics();
       setAnalytics(res.data || null);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    } catch {
+      try {
+        const res = await fetch(`${API_URL}/analytics`, { headers: { Authorization: `Bearer ${token}` } });
+        const json = await res.json();
+        if (json.success) setAnalytics(json.data);
+      } catch {}
+    } finally { setLoading(false); }
   };
 
   if (loading) return <LoadingSpinner message="Loading analytics..." />;
@@ -42,7 +49,7 @@ export const AnalyticsPage: React.FC = () => {
   const userStatusData = {
     labels: ['Active', 'Inactive'],
     datasets: [{
-      data: [users.active, users.inactive],
+      data: [users?.active ?? 0, users?.inactive ?? 0],
       backgroundColor: ['#22c55e', '#ef4444'],
       borderWidth: 0,
     }],
@@ -87,7 +94,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6' }}><i className="ti ti-users"></i></div>
-          <div className="stat-val">{users.total}</div>
+          <div className="stat-val">{users?.total ?? 'N/A'}</div>
           <div className="stat-label">Total Users</div>
         </div>
         <div className="stat-card">
@@ -104,20 +111,24 @@ export const AnalyticsPage: React.FC = () => {
             <div style={{ width: 220, height: 220 }}><Doughnut data={taskStatusData} /></div>
           </div>
         </div>
-        <div className="card">
-          <div className="card-header"><h3>User Status</h3></div>
-          <div className="card-body" style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
-            <div style={{ width: 220, height: 220 }}><Doughnut data={userStatusData} /></div>
+        {users ? (
+          <div className="card">
+            <div className="card-header"><h3>User Status</h3></div>
+            <div className="card-body" style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
+              <div style={{ width: 220, height: 220 }}><Doughnut data={userStatusData} /></div>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
-      <div className="card">
-        <div className="card-header"><h3>Tasks Per User</h3></div>
-        <div className="card-body" style={{ padding: 20 }}>
-          <Bar data={userTaskData} options={chartOptions} />
+      {(analytics.userTaskStats && analytics.userTaskStats.length > 0) ? (
+        <div className="card">
+          <div className="card-header"><h3>Tasks Per User</h3></div>
+          <div className="card-body" style={{ padding: 20 }}>
+            <Bar data={userTaskData} options={chartOptions} />
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 };

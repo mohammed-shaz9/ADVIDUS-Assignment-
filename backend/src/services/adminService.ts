@@ -247,3 +247,16 @@ export const getAnalytics = async () => {
     userTaskStats,
   };
 };
+
+export const getPublicAnalytics = async () => {
+  const total = await Task.countDocuments({});
+  const pending = await Task.countDocuments({ status: 'pending' });
+  const inProgress = await Task.countDocuments({ status: 'in_progress' });
+  const completed = await Task.countDocuments({ status: 'completed' });
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return {
+    tasks: { total, pending, inProgress, completed, completionRate },
+    serverTime: new Date().toISOString(),
+  };
+};

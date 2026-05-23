@@ -29,6 +29,7 @@ import approvalRoutes from './routes/approvalRoutes.js';
 import performanceRoutes from './routes/performanceRoutes.js';
 import templateRoutes from './routes/templateRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import User from './models/User.js';
 import { seed } from './seed.js';
@@ -89,6 +90,7 @@ app.use('/api/approvals', approvalRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/settings', settingsRoutes);
 
 // Error handling

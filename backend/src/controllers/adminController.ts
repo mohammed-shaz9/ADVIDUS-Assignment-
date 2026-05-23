@@ -64,3 +64,10 @@ export const getAnalytics = async (req: AuthenticatedRequest, res: Response, nex
     next(error);
   }
 };
+
+export const getPublicAnalytics = async (_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const result = await adminService.getPublicAnalytics();
+    res.json({ success: true, data: result, serverTime: new Date().toISOString() });
+  } catch (error) { next(error); }
+};
