@@ -153,10 +153,7 @@ Full spec: [`openapi.yml`](./openapi.yml)
 
 ---
 
-## Project Status
 
-Developed as a senior engineering demonstration. All 7 modules implemented, Docker-deployed, 1000+ data points, TypeScript strict mode throughout. See [`SUBMISSION.md`](./SUBMISSION.md) for the HR-facing summary.
-=======
 # ADVIDUS Assignment
 Full-stack RBAC Task Manager
 >>>>>>> main
