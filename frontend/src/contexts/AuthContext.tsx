@@ -16,7 +16,7 @@ interface AuthContextType {
   removeToast: (id: string) => void;
 }
 
-export const API_URL = 'http://localhost:5050/api';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
