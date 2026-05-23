@@ -73,7 +73,7 @@ const DashboardPage: React.FC = () => {
     };
 
     checkUserStatus();
-    const interval = setInterval(checkUserStatus, 5000);
+    const interval = setInterval(checkUserStatus, 30000);
     return () => clearInterval(interval);
   }, [token, logout, addToast]);
 

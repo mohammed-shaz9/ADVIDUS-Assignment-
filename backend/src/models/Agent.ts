@@ -47,5 +47,7 @@ const agentSchema = new Schema<IAgentDocument>(
   { timestamps: true }
 );
 
+agentSchema.index({ status: 1 });
+
 const Agent: Model<IAgentDocument> = mongoose.model<IAgentDocument>('Agent', agentSchema);
 export default Agent;

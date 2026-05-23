@@ -71,10 +71,7 @@ export const getAdminTasks = async (query: PaginationQuery) => {
   if (query.q) {
     const q = String(query.q).trim();
     if (q) {
-      filter.$or = [
-        { title: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-      ];
+      filter.$text = { $search: q };
     }
   }
 
@@ -124,79 +121,127 @@ export const getActivityLogs = async (query: PaginationQuery) => {
 };
 
 export const getMetrics = async () => {
-  const [
-    totalUsers,
-    activeUsers,
-    inactiveUsers,
-    totalAgents,
-    activeAgents,
-    inactiveAgents,
-    taskGrouped,
-  ] = await Promise.all([
-    User.countDocuments({}),
-    User.countDocuments({ status: 'active' }),
-    User.countDocuments({ status: 'inactive' }),
-    Agent.countDocuments({}),
-    Agent.countDocuments({ status: 'active' }),
-    Agent.countDocuments({ status: 'inactive' }),
-    Task.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+  const [result] = await Task.aggregate([
+    {
+      $facet: {
+        taskCounts: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
+      },
+    },
   ]);
 
   const taskCounts: TaskCounts = { pending: 0, in_progress: 0, completed: 0 };
-  for (const row of taskGrouped) {
-    if (row?._id && Object.prototype.hasOwnProperty.call(taskCounts, row._id)) {
-      taskCounts[row._id as keyof TaskCounts] = row.count;
+  if (result?.taskCounts) {
+    for (const row of result.taskCounts) {
+      if (row?._id && Object.prototype.hasOwnProperty.call(taskCounts, row._id)) {
+        taskCounts[row._id as keyof TaskCounts] = row.count;
+      }
     }
   }
+
+  const [usersResult, agentsResult] = await Promise.all([
+    User.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0] } },
+        },
+      },
+    ]),
+    Agent.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0] } },
+        },
+      },
+    ]),
+  ]);
+
+  const u = usersResult[0] || { total: 0, active: 0, inactive: 0 };
+  const a = agentsResult[0] || { total: 0, active: 0, inactive: 0 };
 
   return {
     counts: {
       tasks: taskCounts,
-      users: { total: totalUsers, active: activeUsers, inactive: inactiveUsers },
-      agents: { total: totalAgents, active: activeAgents, inactive: inactiveAgents },
+      users: { total: u.total, active: u.active, inactive: u.inactive },
+      agents: { total: a.total, active: a.active, inactive: a.inactive },
     },
     serverTime: new Date().toISOString(),
   };
 };
 
 export const getAnalytics = async () => {
-  const [totalUsers, activeUsers, inactiveUsers, totalTasks, completedTasks, pendingTasks, inProgressTasks, usersList] =
-    await Promise.all([
-      User.countDocuments({}),
-      User.countDocuments({ status: 'active' }),
-      User.countDocuments({ status: 'inactive' }),
-      Task.countDocuments({}),
-      Task.countDocuments({ status: 'completed' }),
-      Task.countDocuments({ status: 'pending' }),
-      Task.countDocuments({ status: 'in_progress' }),
-      User.find({}),
-    ]);
+  const [taskStats, userStats, userTaskStats] = await Promise.all([
+    Task.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+          inProgress: { $sum: { $cond: [{ $eq: ['$status', 'in_progress'] }, 1, 0] } },
+        },
+      },
+    ]),
+    User.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0] } },
+        },
+      },
+    ]),
+    Task.aggregate([
+      {
+        $group: {
+          _id: '$owner',
+          totalTasks: { $sum: 1 },
+          completedTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          name: { $ifNull: ['$user.name', 'Deleted User'] },
+          email: { $ifNull: ['$user.email', ''] },
+          role: { $ifNull: ['$user.role', 'user'] },
+          status: { $ifNull: ['$user.status', 'inactive'] },
+          totalTasks: 1,
+          completedTasks: 1,
+        },
+      },
+      { $sort: { totalTasks: -1 } },
+    ]),
+  ]);
 
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  const userTaskStats = await Promise.all(
-    usersList.map(async (u) => {
-      const uTotal = await Task.countDocuments({ owner: u._id });
-      const uCompleted = await Task.countDocuments({ owner: u._id, status: 'completed' });
-      return {
-        _id: u._id,
-        name: u.name,
-        email: u.email,
-        role: u.role,
-        status: u.status,
-        totalTasks: uTotal,
-        completedTasks: uCompleted,
-      };
-    })
-  );
+  const t = taskStats[0] || { total: 0, completed: 0, pending: 0, inProgress: 0 };
+  const u = userStats[0] || { total: 0, active: 0, inactive: 0 };
+  const completionRate = t.total > 0 ? Math.round((t.completed / t.total) * 100) : 0;
 
   return {
-    users: { total: totalUsers, active: activeUsers, inactive: inactiveUsers },
+    users: { total: u.total, active: u.active, inactive: u.inactive },
     tasks: {
-      total: totalTasks,
-      completed: completedTasks,
-      pending: pendingTasks,
-      inProgress: inProgressTasks,
+      total: t.total,
+      completed: t.completed,
+      pending: t.pending,
+      inProgress: t.inProgress,
       completionRate,
     },
     userTaskStats,
