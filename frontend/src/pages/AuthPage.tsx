@@ -71,7 +71,17 @@ const AuthPage: React.FC = () => {
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px' }}>
-            <img src="/Screenshot%202026-05-24%20010501.png" alt="Logo" style={{ height: '56px', borderRadius: '8px' }} />
+            <div style={{
+              width: '44px', height: '44px', borderRadius: '12px',
+              background: 'rgba(108,99,255,0.15)', border: '0.5px solid rgba(108,99,255,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <i className="ti ti-pencil" style={{ fontSize: '22px', color: '#6C63FF' }}></i>
+            </div>
+            <div>
+              <h2 style={{ color: '#fff', fontWeight: 700, fontSize: '22px', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>TaskFlow</h2>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', margin: '2px 0 0 0' }}>Enterprise Platform</p>
+            </div>
           </div>
 
           <h1 style={{

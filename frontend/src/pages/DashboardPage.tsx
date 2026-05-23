@@ -356,8 +356,15 @@ const DashboardPage: React.FC = () => {
           <div className="animate-slide-up">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div className="view-label">
-                  {isAdmin ? 'Personal Task Board' : 'My Workspace'}
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                    {isAdmin ? 'Personal Task Board' : 'My Workspace'}
+                  </div>
+                  {!isAdmin && (
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Your personal task dashboard
+                    </div>
+                  )}
                 </div>
                 <button className="btn-primary" onClick={openCreateModal}>
                   <i className="ti ti-plus" style={{ marginRight: '6px' }}></i> Create Task
@@ -367,22 +374,23 @@ const DashboardPage: React.FC = () => {
               {!isAdmin && (
                 <>
                   <div style={{
-                    background: 'var(--bg-card)', border: '0.5px solid var(--border-color)',
-                    borderRadius: 'var(--radius-md)', padding: '16px 18px',
-                    display: 'flex', alignItems: 'center', gap: '14px',
+                    background: 'linear-gradient(135deg, rgba(108,99,255,0.08) 0%, rgba(108,99,255,0.02) 100%)',
+                    border: '0.5px solid rgba(108,99,255,0.2)',
+                    borderRadius: 'var(--radius-md)', padding: '20px 22px',
+                    display: 'flex', alignItems: 'center', gap: '16px',
                   }}>
                     <div style={{
-                      width: '40px', height: '40px', borderRadius: '10px',
-                      background: 'rgba(108,99,255,0.12)',
+                      width: '48px', height: '48px', borderRadius: '12px',
+                      background: 'rgba(108,99,255,0.15)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <i className="ti ti-user" style={{ fontSize: '20px', color: '#6C63FF' }}></i>
+                      <i className="ti ti-user" style={{ fontSize: '24px', color: '#6C63FF' }}></i>
                     </div>
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
                         Welcome back, {user?.name}
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '3px' }}>
                         Here's your personal task overview.
                       </div>
                     </div>
@@ -456,7 +464,7 @@ const DashboardPage: React.FC = () => {
         {activeTab === 'org' && isAdmin && <OrganizationPage />}
         {activeTab === 'approvals' && isAdmin && <ApprovalsPage />}
         {activeTab === 'analytics' && <AnalyticsPage />}
-        {activeTab === 'performance' && isAdmin && <PerformancePage />}
+        {activeTab === 'performance' && <PerformancePage />}
         {activeTab === 'templates' && isAdmin && <TemplatesPage />}
         {activeTab === 'integrations' && isAdmin && <IntegrationsPage />}
         {activeTab === 'settings' && <SettingsPage />}

@@ -28,7 +28,7 @@ export const Topbar: React.FC<TopbarProps> = ({ user, pageTitle, pageSub, active
     <div className="topbar">
       <div>
         <div className="breadcrumb">
-          <img src="/Screenshot%202026-05-24%20010501.png" alt="Logo" style={{ height: '20px', borderRadius: '4px' }} />
+          <i className="ti ti-pencil" style={{ fontSize: '16px', color: 'var(--accent)' }}></i>
           <span className="sep">/</span>
           <span>{breadcrumbNames[activeTab] || pageTitle}</span>
         </div>

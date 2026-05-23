@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { performanceApi } from '../services/api';
 import { PerformanceScore } from '../types';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 export const PerformancePage: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [scores, setScores] = useState<PerformanceScore[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -11,8 +14,13 @@ export const PerformancePage: React.FC = () => {
 
   const loadScores = async () => {
     try {
-      const res = await performanceApi.getAllPerformance();
-      setScores(res.data || []);
+      if (isAdmin) {
+        const res = await performanceApi.getAllPerformance();
+        setScores(res.data || []);
+      } else {
+        const res = await performanceApi.getMyPerformance();
+        setScores(res.data ? [res.data] : []);
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
