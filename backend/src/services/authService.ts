@@ -98,7 +98,7 @@ export const ensureDemoUsers = async () => {
   for (const u of DEMO_USERS) {
     const exists = await User.findOne({ email: u.email });
     if (!exists) {
-      await User.create({ ...u, password: 'Demo@123', status: 'active' });
+      await User.create({ ...u, password: 'User@123', status: 'active' });
       created.push(u.email);
     }
   }

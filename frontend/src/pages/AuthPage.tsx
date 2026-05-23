@@ -216,11 +216,11 @@ const AuthPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', fontSize: '11px' }}>
               {[
                 { name: 'Admin', cred: 'admin@example.com / Admin@123' },
-                { name: 'Alice', cred: 'alice@demo.com / Demo@123' },
-                { name: 'Bob', cred: 'bob@demo.com / Demo@123' },
-                { name: 'Charlie', cred: 'charlie@demo.com / Demo@123' },
-                { name: 'Diana', cred: 'diana@demo.com / Demo@123' },
-                { name: 'Eve', cred: 'eve@demo.com / Demo@123' },
+                { name: 'Alice', cred: 'alice@demo.com / User@123' },
+                { name: 'Bob', cred: 'bob@demo.com / User@123' },
+                { name: 'Charlie', cred: 'charlie@demo.com / User@123' },
+                { name: 'Diana', cred: 'diana@demo.com / User@123' },
+                { name: 'Eve', cred: 'eve@demo.com / User@123' },
               ].map((item, idx) => (
                 <div key={idx} style={{
                   display: 'flex', justifyContent: 'space-between', padding: '5px 6px',
