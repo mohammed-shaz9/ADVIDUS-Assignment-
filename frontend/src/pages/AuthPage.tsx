@@ -53,7 +53,7 @@ const AuthPage: React.FC = () => {
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px' }}>
-            <img src="/logo.png" alt="Logo" style={{ height: '36px', borderRadius: '8px' }} />
+            <img src="/Screenshot%202026-05-24%20010501.png" alt="Logo" style={{ height: '36px', borderRadius: '8px' }} />
           </div>
 
           <h1 style={{
