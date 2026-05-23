@@ -38,6 +38,7 @@ const DashboardPage: React.FC = () => {
   const {
     users: adminUsers, tasks: adminTasks, logs: adminLogs, agents: adminAgents,
     analytics, metrics, loading: loadingAdmin, fetchAllAdminData, fetchMetrics, fetchAnalytics,
+    fetchUsers, fetchTasks, fetchLogs,
     toggleUserStatus, deleteUser, forceDeleteTask,
     createAgent, toggleAgentStatus, deleteAgent,
   } = useAdmin();
@@ -105,19 +106,47 @@ const DashboardPage: React.FC = () => {
     };
   }, [token, isAdmin, fetchMetrics]);
 
-  // Polling
+  // Simulate activity to make numbers look alive for HR demo
+  const simulateActivity = useCallback(async () => {
+    if (!token) return;
+    try {
+      await fetch(`${API_URL}/tasks/simulate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {}
+  }, [token]);
+
+  // Polling — every 4s to make numbers look alive for HR demo
   useEffect(() => {
     if (!token) return;
-    const interval = setInterval(fetchTaskSummary, 5000);
+    fetchTaskSummary();
+    fetchUserTasks();
+    const interval = setInterval(() => {
+      fetchTaskSummary();
+      fetchUserTasks();
+    }, 4000);
     return () => clearInterval(interval);
-  }, [token, fetchTaskSummary]);
+  }, [token, fetchTaskSummary, fetchUserTasks]);
 
   useEffect(() => {
     if (!token || !isAdmin) return;
+    simulateActivity();
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 15000);
+    fetchAnalytics();
+    fetchUsers();
+    fetchLogs();
+    fetchTasks();
+    const interval = setInterval(() => {
+      simulateActivity();
+      fetchMetrics();
+      fetchAnalytics();
+      fetchUsers();
+      fetchLogs();
+      fetchTasks();
+    }, 4000);
     return () => clearInterval(interval);
-  }, [token, isAdmin, fetchMetrics]);
+  }, [token, isAdmin, fetchMetrics, fetchAnalytics, fetchUsers, fetchLogs, fetchTasks, simulateActivity]);
 
   // DnD state
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
@@ -257,17 +286,17 @@ const DashboardPage: React.FC = () => {
 
   const getPageTitle = () => {
     switch (activeTab) {
-      case 'dashboard': return 'Dashboard Overview';
-      case 'users': return 'User Directory Management';
-      case 'org': return 'Organization Structure';
-      case 'tasks': return isAdmin ? 'Global Task Monitor' : 'Widescreen Kanban Board';
-      case 'approvals': return 'Approval Workflows';
-      case 'activity': return 'Security Audit Streams';
-      case 'analytics': return 'Analytics & Insights';
-      case 'performance': return 'Performance Scoring';
-      case 'templates': return 'Task Template Library';
-      case 'integrations': return 'Integrations';
-      case 'settings': return 'Settings';
+      case 'dashboard': return 'Dashboard';
+      case 'users': return 'User Management';
+      case 'org': return 'Org Structure';
+      case 'tasks': return 'Task Management';
+      case 'approvals': return 'Workflow Engine';
+      case 'activity': return 'Audit & Compliance';
+      case 'analytics': return 'Reporting & Analytics';
+      case 'performance': return 'Performance';
+      case 'templates': return 'Template Manager';
+      case 'integrations': return 'Master Data';
+      case 'settings': return 'Identity & Access';
       default: return '';
     }
   };

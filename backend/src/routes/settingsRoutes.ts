@@ -18,7 +18,7 @@ router.get('/integrations', asyncHandler(async (req, res) => {
 }));
 
 router.put('/:key', adminOnly, asyncHandler(async (req, res) => {
-  const setting = await settingsService.updateSetting(req.params.key as string, req.body.value, (req as any).user._id);
+  const setting = await settingsService.updateSetting(req.params.key, req.body.value, (req as any).user._id);
   res.json({ success: true, data: setting, serverTime: new Date().toISOString() });
 }));
 
