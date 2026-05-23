@@ -26,7 +26,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     <div className="app">
       <Sidebar user={user} activeTab={activeTab} onTabChange={onTabChange} onLogout={onLogout} />
       <div className="main">
-        <Topbar user={user} pageTitle={pageTitle} pageSub={getFormattedDate()} />
+        <Topbar user={user} pageTitle={pageTitle} pageSub={getFormattedDate()} activeTab={activeTab} />
         <div className="content">
           {children}
         </div>

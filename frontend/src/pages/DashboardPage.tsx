@@ -257,17 +257,17 @@ const DashboardPage: React.FC = () => {
 
   const getPageTitle = () => {
     switch (activeTab) {
-      case 'dashboard': return 'Dashboard Overview';
-      case 'users': return 'User Directory Management';
-      case 'org': return 'Organization Structure';
-      case 'tasks': return isAdmin ? 'Global Task Monitor' : 'Widescreen Kanban Board';
-      case 'approvals': return 'Approval Workflows';
-      case 'activity': return 'Security Audit Streams';
-      case 'analytics': return 'Analytics & Insights';
-      case 'performance': return 'Performance Scoring';
-      case 'templates': return 'Task Template Library';
-      case 'integrations': return 'Integrations';
-      case 'settings': return 'Settings';
+      case 'dashboard': return 'Dashboard';
+      case 'users': return 'User Management';
+      case 'org': return 'Org Structure';
+      case 'tasks': return 'Task Management';
+      case 'approvals': return 'Workflow Engine';
+      case 'activity': return 'Audit & Compliance';
+      case 'analytics': return 'Reporting & Analytics';
+      case 'performance': return 'Performance';
+      case 'templates': return 'Template Manager';
+      case 'integrations': return 'Master Data';
+      case 'settings': return 'Identity & Access';
       default: return '';
     }
   };

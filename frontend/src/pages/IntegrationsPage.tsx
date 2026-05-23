@@ -42,13 +42,14 @@ export const IntegrationsPage: React.FC = () => {
   return (
     <div className="page">
       <div className="page-header">
-        <h2><i className="ti ti-plug"></i> Integrations</h2>
+        <h2><i className="ti ti-database"></i> Master Data</h2>
+        <p className="text-muted">Connected services and system integrations</p>
       </div>
       <div className="integration-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
         {integrations.map(int => (
           <div key={int.name} className="card integration-card" style={{ cursor: 'default' }}>
             <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: 'var(--accent)' }}>
                 <i className={integrationIcons[int.name] || 'ti ti-plug'}></i>
               </div>
               <div style={{ flex: 1 }}>

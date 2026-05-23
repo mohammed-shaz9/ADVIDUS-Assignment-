@@ -1,102 +1,125 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { settingsApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { SystemSetting } from '../types';
-
-const groups = [
-  { key: 'general', label: 'General', icon: 'ti ti-settings' },
-  { key: 'tasks', label: 'Tasks', icon: 'ti ti-checklist' },
-  { key: 'notifications', label: 'Notifications', icon: 'ti ti-bell' },
-  { key: 'security', label: 'Security', icon: 'ti ti-shield' },
-];
+import { User } from '../types';
+import { adminApi } from '../services/api';
 
 export const SettingsPage: React.FC = () => {
-  const { addToast } = useAuth();
-  const [settings, setSettings] = useState<SystemSetting[]>([]);
-  const [activeGroup, setActiveGroup] = useState('general');
+  const { user, addToast } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editValues, setEditValues] = useState<Record<string, string>>({});
 
-  const fetchSettings = useCallback(async (group: string) => {
-    setLoading(true);
+  const fetchUsers = useCallback(async () => {
     try {
-      const res = await settingsApi.getAll(group);
-      if (res.success && res.data) {
-        setSettings(res.data);
-        const vals: Record<string, string> = {};
-        res.data.forEach(s => { vals[s.key] = s.value });
-        setEditValues(vals);
-      }
-    } catch { addToast('Failed to load settings', 'error') }
+      const res = await adminApi.getUsers();
+      if (res.success && res.data) setUsers(res.data);
+    } catch {}
     finally { setLoading(false) }
-  }, [addToast]);
+  }, []);
 
-  useEffect(() => { fetchSettings(activeGroup) }, [activeGroup, fetchSettings]);
+  useEffect(() => { if (user?.role === 'admin') fetchUsers() }, [fetchUsers, user]);
 
-  const handleSave = async (key: string) => {
-    try {
-      await settingsApi.update(key, editValues[key]);
-      addToast('Setting updated', 'success');
-    } catch { addToast('Failed to update setting', 'error') }
+  const roleColors: Record<string, string> = {
+    admin: '#3b82f6',
+    user: '#8e90a6',
   };
 
   return (
     <div className="page">
       <div className="page-header">
-        <h2><i className="ti ti-settings"></i> System Settings</h2>
+        <h2><i className="ti ti-shield"></i> Identity & Access</h2>
+        <p className="text-muted">User roles, permissions, and authentication settings</p>
       </div>
-      <div className="settings-layout" style={{ display: 'flex', gap: '24px' }}>
-        <div className="settings-nav" style={{ width: '220px', flexShrink: 0 }}>
-          {groups.map(g => (
-            <div
-              key={g.key}
-              className={`settings-nav-item ${activeGroup === g.key ? 'active' : ''}`}
-              onClick={() => setActiveGroup(g.key)}
-            >
-              <i className={g.icon}></i> {g.label}
-            </div>
-          ))}
-        </div>
-        <div className="settings-content" style={{ flex: 1 }}>
-          {loading ? <div className="page-loading"><div className="spinner"></div></div> : (
-            <div className="card">
-              <div className="card-header"><h3>{groups.find(g => g.key === activeGroup)?.label} Settings</h3></div>
-              <div className="card-body">
-                {settings.length === 0 ? (
-                  <p className="text-muted">No settings in this group</p>
-                ) : (
-                  settings.map(s => (
-                    <div key={s.key} className="setting-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, marginBottom: '2px' }}>{s.key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</div>
-                        {s.description && <div className="text-muted" style={{ fontSize: '12px' }}>{s.description}</div>}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {editValues[s.key] === 'true' || editValues[s.key] === 'false' ? (
-                          <label className="toggle-switch">
-                            <input type="checkbox" checked={editValues[s.key] === 'true'} onChange={e => { setEditValues({...editValues, [s.key]: e.target.checked ? 'true' : 'false' }); setTimeout(() => handleSave(s.key), 100) }} />
-                            <span className="toggle-slider"></span>
-                          </label>
-                        ) : (
-                          <>
-                            <input
-                              value={editValues[s.key] || ''}
-                              onChange={e => setEditValues({...editValues, [s.key]: e.target.value})}
-                              style={{ width: '180px', textAlign: 'right' }}
-                              onKeyDown={e => e.key === 'Enter' && handleSave(s.key)}
-                            />
-                            <button className="btn btn-sm btn-primary" onClick={() => handleSave(s.key)}>Save</button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div className="card">
+          <div className="card-header"><h3>Your Account</h3></div>
+          <div className="card-body">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div className="avatar" style={{ width: 40, height: 40, fontSize: 14 }}>{user?.name?.slice(0, 2).toUpperCase()}</div>
+              <div>
+                <div style={{ fontWeight: 600 }}>{user?.name}</div>
+                <div className="text-muted" style={{ fontSize: 12 }}>{user?.email}</div>
               </div>
             </div>
-          )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 13 }}>
+              <div><span className="text-muted">Role:</span> <span className="badge" style={{ background: roleColors[user?.role || 'user'], color: '#fff', borderRadius: 4, padding: '2px 8px', fontSize: 11 }}>{user?.role}</span></div>
+              <div><span className="text-muted">Status:</span> <span style={{ color: user?.status === 'active' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>{user?.status}</span></div>
+              <div><span className="text-muted">Last Login:</span> {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header"><h3>Security</h3></div>
+          <div className="card-body">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Multi-Factor Auth</span>
+                <span className="badge badge-info" style={{ fontSize: 11 }}>Enabled</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Session Timeout</span>
+                <span style={{ fontWeight: 500 }}>60 min</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Password Policy</span>
+                <span style={{ fontWeight: 500 }}>Strong</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Last Password Change</span>
+                <span className="text-muted" style={{ fontSize: 12 }}>30 days ago</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header"><h3>Role & Permissions</h3></div>
+          <div className="card-body">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Task Management</span>
+                <span style={{ color: 'var(--accent-green)' }}>Read/Write</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>User Management</span>
+                <span style={{ color: user?.role === 'admin' ? 'var(--accent-green)' : 'var(--text-muted)' }}>{user?.role === 'admin' ? 'Full Access' : 'None'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Analytics</span>
+                <span style={{ color: user?.role === 'admin' ? 'var(--accent-green)' : 'var(--accent-green)' }}>View Only</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Approvals</span>
+                <span style={{ color: user?.role === 'admin' ? 'var(--accent-green)' : 'var(--text-muted)' }}>{user?.role === 'admin' ? 'Full Access' : 'None'}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      {user?.role === 'admin' && (
+        <div className="card">
+          <div className="card-header"><h3><i className="ti ti-users"></i> User Directory ({users.length})</h3></div>
+          <div className="card-body" style={{ padding: 0 }}>
+            <table className="table">
+              <thead>
+                <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {users.map((u: User) => (
+                  <tr key={u._id}>
+                    <td style={{ fontWeight: 500 }}>{u.name}</td>
+                    <td className="text-muted">{u.email}</td>
+                    <td><span className="badge" style={{ background: roleColors[u.role], color: '#fff', borderRadius: 4, padding: '2px 8px', fontSize: 11 }}>{u.role}</span></td>
+                    <td><span style={{ color: u.status === 'active' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>{u.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,9 @@
-import {
+import type {
   User, ApiResponse, Task, TaskSummary, Agent, Analytics, Metrics, ActivityLog,
   Department, Designation, TaskComment, Approval, PerformanceScore, ExtendedAnalytics,
+  TaskTemplate, SystemSetting, Integration,
 } from '../types';
+import type { Notification as NotifType } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
@@ -176,10 +178,10 @@ export const templatesApi = {
 };
 
 export const notificationsApi = {
-  getAll: () => request<ApiResponse<Notification[]> & { unreadCount: number }>('/notifications'),
+  getAll: () => request<ApiResponse<NotifType[]> & { unreadCount: number }>('/notifications'),
   getUnreadCount: () => request<ApiResponse<{ count: number }>>('/notifications/unread-count'),
   markAsRead: (id: string) =>
-    request<ApiResponse<Notification>>(`/notifications/${id}/read`, { method: 'PATCH' }),
+    request<ApiResponse<NotifType>>(`/notifications/${id}/read`, { method: 'PATCH' }),
   markAllAsRead: () =>
     request<ApiResponse<{ message: string }>>('/notifications/read-all', { method: 'POST' }),
 };

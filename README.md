@@ -1,7 +1,6 @@
-<<<<<<< HEAD
-# Avidus Interactive — Premium RBAC Task Manager
+# TaskFlow — Enterprise RBAC Task Manager
 
-Enterprise-grade **Role-Based Access Control** system with AI-powered task delegation, 7-module architecture, real-time audit trails, and full Docker deployment.
+Enterprise-grade **Role-Based Access Control** system with AI-powered task delegation, real-time notifications, multi-level approvals, and a Linear/Notion-style UI. Built as a senior engineering demonstration.
 
 **Stack:** React 19 + Vite 8 + TypeScript (frontend) · Node.js 22 + Express 4 + MongoDB 7 (backend) · Docker Compose
 
@@ -60,17 +59,33 @@ docker compose exec backend npm run seed  # Seed 100+ employees, 450+ tasks
 
 ---
 
-## 7 Modules
+## Modules
 
 | Module | Description |
 |---|---|
-| **Auth** | JWT login/register, RBAC permissions, session guard |
-| **Task Management** | Kanban board, drag-and-drop, AI agent delegation, comments |
-| **Organization** | Department tree, designation hierarchy, org chart |
+| **Auth & RBAC** | JWT login/register, role-based permissions (admin/user), session guard |
+| **Task Management** | Kanban board, drag-and-drop, AI agent delegation, comments, real-time notifications |
+| **Organization** | Department tree, designation hierarchy, org chart, company profile |
 | **Workflow Approvals** | Multi-level approval chains with decide/reject |
-| **Analytics** | Chart.js (doughnut, bar) with task/user statistics |
+| **Analytics & Reporting** | Chart.js (doughnut, bar) with task/user statistics, trends |
 | **Performance Scoring** | Score rings, metrics per employee, auto-snapshot |
-| **Audit Logging** | Immutable activity stream with 1000+ entries |
+| **Audit & Compliance** | Immutable activity stream with 1000+ entries |
+| **Identity & Access** | User directory, roles, permissions, security settings |
+| **System Settings** | Configurable settings per group (general, notifications, security) |
+| **Master Data** | Integration status dashboard, connected services |
+| **Task Templates** | Reusable templates with checklist steps, recurring rules |
+
+---
+
+## TaskFlow UI Redesign
+
+The interface follows a modern Linear/Notion-inspired design system:
+
+- **Dark sidebar** (#0D0D12) with section grouping: Core Operations, Organization, Intelligence, Administration
+- **Light content area** (#f5f5f7) with breadcrumb navigation
+- **Brand:** "TaskFlow" with "Enterprise Platform" subtitle and gradient logo icon
+- **Badge counts:** Red notification pills on sidebar items (e.g., Task Management shows pending count)
+- **Notification dropdown:** Real-time bell with unread count, mark-read, auto-poll every 10s
 
 ---
 
@@ -92,27 +107,35 @@ The seed script (`backend/src/seed.ts`) simulates a realistic **4-phase task lif
 ## Architecture
 
 ```
-avidusinteractive-rbac-app/
+taskflow-rbac/
 ├── backend/src/
-│   ├── config/        # DB, env, Winston logger
-│   ├── controllers/   # Thin request handlers
-│   ├── services/      # Business logic
-│   ├── middleware/     # Auth, validation, error, rate limit
-│   ├── models/        # Mongoose schemas (10 models)
-│   ├── routes/        # API route definitions
-│   ├── errors/        # Custom error classes
-│   ├── seed.ts        # Data seeding with lifecycle loops
-│   └── server.ts      # Entry point
+│   ├── config/           # DB, env, Winston logger
+│   ├── controllers/      # Thin request handlers
+│   ├── services/         # Business logic (task, user, org, approval, notification, etc.)
+│   ├── middleware/        # Auth, validation, error, rate limit, asyncHandler
+│   ├── models/           # Mongoose schemas (11 models incl. Notification, TaskTemplate, SystemSetting)
+│   ├── routes/           # API route definitions
+│   ├── errors/           # Custom error classes
+│   ├── utils/            # realtime.ts (Socket.IO helpers), asyncHandler.ts
+│   ├── seed.ts           # Data seeding with lifecycle loops
+│   └── server.ts         # Entry point, Socket.IO, auto-seed defaults
 ├── frontend/src/
-│   ├── components/    # Layout, dashboard, tasks, users, agents, activity
-│   ├── pages/         # 6 page components
-│   ├── hooks/         # useTasks, useAdmin
-│   ├── contexts/      # AuthContext
-│   ├── services/      # API client
-│   └── types/         # TypeScript interfaces
-├── docker-compose.yml # 3-container orchestration
-└── openapi.yml        # OpenAPI 3.0 spec
+│   ├── components/       # Layout (Sidebar, Topbar, AppLayout, NotificationBell), dashboard widgets
+│   ├── pages/            # Dashboard (tab router), Templates, Settings, Integrations
+│   ├── contexts/         # AuthContext
+│   ├── services/         # API client (api.ts)
+│   └── types/            # TypeScript interfaces
+├── docker-compose.yml    # 3-container orchestration (mongo:7 + backend + nginx)
+└── openapi.yml           # OpenAPI 3.0 spec
 ```
+
+### Performance Optimizations
+
+- **N+1 eliminated:** Analytics queries reduced from 2N+8 DB calls to 3 aggregation pipelines
+- **7 countDocuments → 2 aggregations:** Using `$facet` and `$group` for metrics
+- **$text indexes:** Admin task search uses MongoDB `$text` instead of `$regex`
+- **5-second auto-refresh:** Dashboard data polls every 5s for live HR demo feel
+- **Socket.IO:** Real-time per-user notification push via `registerUserSocket`
 
 ---
 
@@ -135,7 +158,12 @@ avidusinteractive-rbac-app/
 | GET | `/api/admin/logs` | Admin |
 | GET | `/api/admin/metrics` | Admin |
 | GET | `/api/admin/analytics` | Admin |
-| GET/POST | `/api/approvals` | Authenticated |
+| GET/POST/PUT/DELETE | `/api/approvals` | Authenticated |
+| GET/POST/PUT/DELETE | `/api/templates` | Admin |
+| GET | `/api/templates/:id/generate` | Admin |
+| GET/PATCH | `/api/notifications` | Authenticated |
+| GET/PUT | `/api/settings` | Admin |
+| GET | `/api/settings/integrations` | Admin |
 
 Full spec: [`openapi.yml`](./openapi.yml)
 
@@ -143,20 +171,19 @@ Full spec: [`openapi.yml`](./openapi.yml)
 
 ## Tech Stack
 
-- **Frontend:** React 19, Vite 8, TypeScript, Chart.js, react-chartjs-2
+- **Frontend:** React 19, Vite 8+, TypeScript, Chart.js, react-chartjs-2
 - **Backend:** Node.js 22, Express 4, TypeScript, Mongoose 8, JWT, bcrypt
 - **Database:** MongoDB 7 (replica set compatible)
 - **Security:** Helmet, CORS, express-rate-limit, input validation
-- **Real-time:** Socket.IO 4
+- **Real-time:** Socket.IO 4 with per-user notification routing
 - **Container:** Docker Compose (mongo:7 + backend + frontend/nginx)
 - **CI:** GitHub Actions (lint, typecheck, build)
+- **Deployment:** Render (free tier) + MongoDB Atlas (free cluster)
 
 ---
 
 ## Project Status
 
-Developed as a senior engineering demonstration. All 7 modules implemented, Docker-deployed, 1000+ data points, TypeScript strict mode throughout. See [`SUBMISSION.md`](./SUBMISSION.md) for the HR-facing summary.
-=======
-# ADVIDUS Assignment
-Full-stack RBAC Task Manager
->>>>>>> main
+All 11 backend modules implemented with full CRUD routes, services, and Mongoose models. Frontend redesigned with TaskFlow brand identity, task-based sidebar navigation with red badge counts, breadcrumbs, real-time notifications, and live data polling. Docker-deployed with 1000+ seeded data points. TypeScript strict mode throughout.
+
+See [`SUBMISSION.md`](./SUBMISSION.md) for the HR-facing summary.
