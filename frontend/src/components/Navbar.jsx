@@ -54,6 +54,28 @@ const Navbar = () => {
 
       {user ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          {user.role === 'Admin' && (
+            <Link
+              to="/admin"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.4rem 0.9rem',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                background: 'rgba(236,72,153,0.12)',
+                color: 'var(--accent)',
+                border: '1px solid rgba(236,72,153,0.3)',
+                transition: 'all var(--transition-fast)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(236,72,153,0.22)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(236,72,153,0.12)'; }}
+            >
+              ⚙️ Admin
+            </Link>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.95rem' }}>
               {user.name}

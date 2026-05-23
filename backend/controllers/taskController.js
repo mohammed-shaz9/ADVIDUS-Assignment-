@@ -1,4 +1,5 @@
 const Task = require('../models/Task');
+const ActivityLog = require('../models/ActivityLog');
 
 // @desc    Create a new task
 // @route   POST /api/tasks
@@ -21,6 +22,8 @@ exports.createTask = async (req, res) => {
       status: status || 'Pending',
       userId: req.user._id,
     });
+
+    ActivityLog.create({ userId: req.user._id, action: 'TASK_CREATED', details: task.title }).catch(() => {});
 
     return res.status(201).json({
       success: true,
@@ -91,6 +94,8 @@ exports.updateTask = async (req, res) => {
 
     const updatedTask = await task.save();
 
+    ActivityLog.create({ userId: req.user._id, action: 'TASK_UPDATED', details: updatedTask.title }).catch(() => {});
+
     return res.status(200).json({
       success: true,
       message: 'Task updated successfully',
@@ -133,6 +138,8 @@ exports.deleteTask = async (req, res) => {
 
     // Delete task
     await Task.deleteOne({ _id: taskId });
+
+    ActivityLog.create({ userId: req.user._id, action: 'TASK_DELETED', details: task.title }).catch(() => {});
 
     return res.status(200).json({
       success: true,
