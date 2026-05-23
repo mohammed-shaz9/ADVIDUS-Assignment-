@@ -19,7 +19,7 @@ router.get('/unread-count', asyncHandler(async (req, res) => {
 }));
 
 router.patch('/:id/read', asyncHandler(async (req, res) => {
-  const notification = await notificationService.markAsRead(req.params.id, (req as any).user._id);
+  const notification = await notificationService.markAsRead(req.params.id as string, (req as any).user._id);
   res.json({ success: true, data: notification, serverTime: new Date().toISOString() });
 }));
 
