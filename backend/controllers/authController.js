@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const ActivityLog = require('../models/ActivityLog');
 
 // Helper function to generate JWT token
 const generateToken = (id) => {
@@ -107,6 +108,9 @@ exports.login = async (req, res) => {
 
     // Return token
     const token = generateToken(user._id);
+
+    // Log LOGIN activity (fire-and-forget, don't block response)
+    ActivityLog.create({ userId: user._id, action: 'LOGIN', details: `${user.email} logged in` }).catch(() => {});
 
     return res.status(200).json({
       success: true,

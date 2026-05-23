@@ -26,3 +26,12 @@ export const getTasks = () => api.get('/tasks');
 export const createTask = (data) => api.post('/tasks', data);
 export const updateTask = (id, data) => api.patch(`/tasks/${id}`, data);
 export const deleteTask = (id) => api.delete(`/tasks/${id}`);
+
+// Admin APIs
+export const getAdminUsers = () => api.get('/admin/users');
+export const deleteAdminUser = (id) => api.delete(`/admin/users/${id}`);
+export const updateAdminUserStatus = (id, data) => api.patch(`/admin/users/${id}/status`, data);
+export const getAdminTasks = () => api.get('/admin/tasks');
+export const deleteAdminTask = (id) => api.delete(`/admin/tasks/${id}`);
+export const getActivityLogs = () => api.get('/admin/logs');
+export const getAdminSummary = () => api.get('/admin/summary');
