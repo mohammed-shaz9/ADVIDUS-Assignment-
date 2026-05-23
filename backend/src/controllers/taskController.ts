@@ -46,6 +46,15 @@ export const updateTask = async (req: AuthenticatedRequest, res: Response, next:
   }
 };
 
+export const simulateActivity = async (_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const result = await taskService.simulateActivity();
+    res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const deleteTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const taskId = req.params.id as string;

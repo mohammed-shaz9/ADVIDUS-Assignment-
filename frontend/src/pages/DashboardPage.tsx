@@ -105,19 +105,36 @@ const DashboardPage: React.FC = () => {
     };
   }, [token, isAdmin, fetchMetrics]);
 
-  // Polling
+  // Simulate activity to make numbers look alive for HR demo
+  const simulateActivity = useCallback(async () => {
+    if (!token) return;
+    try {
+      await fetch(`${API_URL}/tasks/simulate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {}
+  }, [token]);
+
+  // Polling — every 4s to make numbers look alive for HR demo
   useEffect(() => {
     if (!token) return;
-    const interval = setInterval(fetchTaskSummary, 5000);
+    const interval = setInterval(fetchTaskSummary, 4000);
     return () => clearInterval(interval);
   }, [token, fetchTaskSummary]);
 
   useEffect(() => {
     if (!token || !isAdmin) return;
+    simulateActivity();
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 15000);
+    fetchAnalytics();
+    const interval = setInterval(() => {
+      simulateActivity();
+      fetchMetrics();
+      fetchAnalytics();
+    }, 4000);
     return () => clearInterval(interval);
-  }, [token, isAdmin, fetchMetrics]);
+  }, [token, isAdmin, fetchMetrics, fetchAnalytics, simulateActivity]);
 
   // DnD state
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);

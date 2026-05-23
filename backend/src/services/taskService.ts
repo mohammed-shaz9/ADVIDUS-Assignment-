@@ -1,7 +1,7 @@
 import Task from '../models/Task.js';
 import { logActivity } from '../utils/activityLogger.js';
 import { executeAgentTask } from '../utils/agentExecutor.js';
-import { emitEvent } from '../utils/realtime.js';
+import { emitEvent, emitToUser } from '../utils/realtime.js';
 import { NotFoundError, ForbiddenError } from '../errors/AppError.js';
 import { TaskCounts } from '../types/index.js';
 import { createNotification } from './notificationService.js';
@@ -159,4 +159,22 @@ export const deleteTask = async (taskId: string, userId: string, userRole: strin
   emitEvent('task.deleted', { taskId: task._id.toString() });
 
   return { message: 'Task removed successfully' };
+};
+
+export const simulateActivity = async () => {
+  const statuses: Array<'pending' | 'in_progress' | 'completed'> = ['pending', 'in_progress', 'completed'];
+  const sample = await Task.aggregate([{ $sample: { size: 3 } }]);
+  const results: string[] = [];
+
+  for (const task of sample) {
+    const nextStatuses = statuses.filter(s => s !== task.status);
+    const newStatus = nextStatuses[Math.floor(Math.random() * nextStatuses.length)];
+
+    await Task.findByIdAndUpdate(task._id, { status: newStatus });
+    results.push(`${task._id}: ${task.status} → ${newStatus}`);
+
+    emitEvent('task.updated', { taskId: task._id.toString(), status: newStatus, simulated: true });
+  }
+
+  return { message: 'Activity simulated', toggled: results.length, serverTime: new Date().toISOString() };
 };

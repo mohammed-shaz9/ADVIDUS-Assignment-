@@ -11,6 +11,7 @@ router.route('/')
   .post(checkPermission('tasks:write'), validateTask, taskController.createTask);
 
 router.get('/summary', checkPermission('tasks:read'), taskController.getTaskSummary);
+router.post('/simulate', taskController.simulateActivity);
 
 router.route('/:id')
   .put(checkPermission('tasks:write'), taskController.updateTask)
