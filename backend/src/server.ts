@@ -28,9 +28,17 @@ import commentRoutes from './routes/commentRoutes.js';
 import approvalRoutes from './routes/approvalRoutes.js';
 import performanceRoutes from './routes/performanceRoutes.js';
 import User from './models/User.js';
+import { seed } from './seed.js';
 
 // Connect to Database
 await connectDB();
+
+// Auto-seed if database is empty
+const userCount = await User.countDocuments();
+if (userCount === 0) {
+  logger.info('Database empty — seeding...');
+  await seed();
+}
 
 const app = express();
 const server = http.createServer(app);

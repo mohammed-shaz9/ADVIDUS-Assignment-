@@ -133,9 +133,8 @@ function randomEmail(name: string, domain = 'avidus.ai'): string {
   return `${name.toLowerCase().replace(/\s+/g, '.')}${Math.floor(Math.random() * 999)}@${domain}`;
 }
 
-const seedData = async (): Promise<void> => {
+export const seed = async (): Promise<void> => {
   try {
-    await connectDB();
     await Promise.all([
       User.deleteMany({}), Task.deleteMany({}), TaskComment.deleteMany({}),
       ActivityLog.deleteMany({}), Agent.deleteMany({}), Department.deleteMany({}),
@@ -460,11 +459,15 @@ const seedData = async (): Promise<void> => {
     logger.info('PHASE 3 (completion), PHASE 4 (audit logging)');
     logger.info('========================================');
 
-    process.exit(0);
+    logger.info('Seeding complete!');
   } catch (error) {
     logger.error('Seeding failed', { error });
-    process.exit(1);
+    throw error;
   }
 };
 
-seedData();
+// Allow running directly via `tsx src/seed.ts`
+const isMainModule = process.argv[1]?.endsWith('seed.ts');
+if (isMainModule) {
+  connectDB().then(() => seed().then(() => process.exit(0)).catch(() => process.exit(1)));
+}
