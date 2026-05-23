@@ -105,7 +105,7 @@ const DashboardPage: React.FC = () => {
   // Polling
   useEffect(() => {
     if (!token) return;
-    const interval = setInterval(fetchTaskSummary, 15000);
+    const interval = setInterval(fetchTaskSummary, 5000);
     return () => clearInterval(interval);
   }, [token, fetchTaskSummary]);
 
