@@ -6,6 +6,18 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { ToastContainer } from './components/common/ToastContainer';
 
+// Global error logger
+if (typeof window !== 'undefined') {
+  const origOnError = window.onerror;
+  window.onerror = (msg, source, line, col, err) => {
+    console.error('[Global]', msg, source, line, col, err);
+    origOnError?.call(window, msg, source, line, col, err);
+  };
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error('[Unhandled Promise]', e.reason);
+  });
+}
+
 const MainApp: React.FC = () => {
   const { user, loading, backgroundRefreshing, toasts, removeToast } = useAuth();
 

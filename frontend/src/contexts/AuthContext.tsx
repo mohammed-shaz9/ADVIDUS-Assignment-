@@ -66,8 +66,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Background refresh: start immediately if token exists
   // Shows cached data instantly, then revalidates
+  const userRef = useRef(user);
+  userRef.current = user;
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setBackgroundRefreshing(true);
     authApi.getMe()
       .then((response) => {
@@ -75,15 +80,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(response.data);
           cache.set(USER_CACHE_KEY, response.data);
         } else {
-          // Token invalid — only logout if no cached user is showing
-          setUser((prev) => {
-            if (!prev) {
-              localStorage.removeItem('token');
-              setToken(null);
-              addToast('Session expired. Please log in again.', 'error');
-            }
-            return prev;
-          });
+          // Token invalid — logout if no cached user is available
+          if (!userRef.current) {
+            localStorage.removeItem('token');
+            setToken(null);
+            addToast('Session expired. Please log in again.', 'error');
+          }
         }
       })
       .catch(() => {
