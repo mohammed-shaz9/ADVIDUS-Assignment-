@@ -106,9 +106,12 @@ export const useAdmin = () => {
       const response = await adminApi.getDashboard();
       if (response.success && response.data) {
         const { users: u, tasks: t, logs: l, metrics: m, analytics: a } = response.data;
+        // Backend returns paginated responses for tasks/logs: { items: [...], page, limit, ... }
+        const taskArr = Array.isArray(t) ? t : (t?.items || []);
+        const logArr = Array.isArray(l) ? l : (l?.items || []);
         setUsers(u || []); cache.set('adminUsers', u || []);
-        setTasks(t || []); cache.set('adminTasks', t || []);
-        setLogs(l || []); cache.set('adminLogs', l || []);
+        setTasks(taskArr); cache.set('adminTasks', taskArr);
+        setLogs(logArr); cache.set('adminLogs', logArr);
         setMetrics(m || null); cache.set('adminMetrics', m);
         setAnalytics(a || null); cache.set('adminAnalytics', a);
       }
