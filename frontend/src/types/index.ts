@@ -223,4 +223,13 @@ export interface Integration {
   description?: string;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  serverTime: string;
+}
+
 export type TabType = 'dashboard' | 'users' | 'tasks' | 'activity' | 'org' | 'approvals' | 'performance' | 'analytics' | 'templates' | 'settings' | 'integrations';

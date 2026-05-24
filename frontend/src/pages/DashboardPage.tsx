@@ -19,14 +19,27 @@ import { UserTable } from '../components/users/UserTable';
 import { AgentFormModal } from '../components/agents/AgentFormModal';
 import { AgentConsoleModal } from '../components/agents/AgentConsoleModal';
 import { ActivityLogTable } from '../components/activity/ActivityLogTable';
-import { OrganizationPage } from './OrganizationPage';
-import { ApprovalsPage } from './ApprovalsPage';
-import { AnalyticsPage } from './AnalyticsPage';
-import { PerformancePage } from './PerformancePage';
-import { TemplatesPage } from './TemplatesPage';
-import { SettingsPage } from './SettingsPage';
-import { IntegrationsPage } from './IntegrationsPage';
 import { TabType, Task } from '../types';
+
+const OrganizationPage = React.lazy(() => import('./OrganizationPage').then(m => ({ default: m.OrganizationPage })));
+const ApprovalsPage = React.lazy(() => import('./ApprovalsPage').then(m => ({ default: m.ApprovalsPage })));
+const AnalyticsPage = React.lazy(() => import('./AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
+const PerformancePage = React.lazy(() => import('./PerformancePage').then(m => ({ default: m.PerformancePage })));
+const TemplatesPage = React.lazy(() => import('./TemplatesPage').then(m => ({ default: m.TemplatesPage })));
+const SettingsPage = React.lazy(() => import('./SettingsPage').then(m => ({ default: m.SettingsPage })));
+const IntegrationsPage = React.lazy(() => import('./IntegrationsPage').then(m => ({ default: m.IntegrationsPage })));
+
+const PageSkeleton: React.FC = () => (
+  <div style={{ padding: '24px', textAlign: 'center', color: '#6B7280' }}>
+    <div className="skeleton-shimmer" style={{ height: 24, width: '40%', margin: '0 auto 16px', borderRadius: 6, background: '#1e1e2e' }} />
+    <div className="skeleton-shimmer" style={{ height: 16, width: '60%', margin: '0 auto 12px', borderRadius: 4, background: '#1e1e2e' }} />
+    <div className="skeleton-shimmer" style={{ height: 200, width: '100%', borderRadius: 8, background: '#1e1e2e' }} />
+  </div>
+);
+
+const LazyPage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <React.Suspense fallback={<PageSkeleton />}>{children}</React.Suspense>
+);
 
 const DashboardPage: React.FC = () => {
   const { user, token, logout, addToast } = useAuth();
@@ -147,21 +160,13 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     if (!token || !isAdmin) return;
     simulateActivity();
-    fetchMetrics();
-    fetchAnalytics();
-    fetchUsers();
-    fetchLogs();
-    fetchTasks();
+    fetchAllAdminData();
     const interval = setInterval(() => {
       simulateActivity();
-      fetchMetrics();
-      fetchAnalytics();
-      fetchUsers();
-      fetchLogs();
-      fetchTasks();
+      fetchAllAdminData();
     }, 4000);
     return () => clearInterval(interval);
-  }, [token, isAdmin, fetchMetrics, fetchAnalytics, fetchUsers, fetchLogs, fetchTasks, simulateActivity]);
+  }, [token, isAdmin, fetchAllAdminData, simulateActivity]);
 
   // DnD state
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
@@ -496,13 +501,13 @@ const DashboardPage: React.FC = () => {
           />
         )}
 
-        {activeTab === 'org' && isAdmin && <OrganizationPage />}
-        {activeTab === 'approvals' && isAdmin && <ApprovalsPage />}
-        {activeTab === 'analytics' && <AnalyticsPage />}
-        {activeTab === 'performance' && <PerformancePage />}
-        {activeTab === 'templates' && isAdmin && <TemplatesPage />}
-        {activeTab === 'integrations' && isAdmin && <IntegrationsPage />}
-        {activeTab === 'settings' && <SettingsPage />}
+        {activeTab === 'org' && isAdmin && <LazyPage><OrganizationPage /></LazyPage>}
+        {activeTab === 'approvals' && isAdmin && <LazyPage><ApprovalsPage /></LazyPage>}
+        {activeTab === 'analytics' && <LazyPage><AnalyticsPage /></LazyPage>}
+        {activeTab === 'performance' && <LazyPage><PerformancePage /></LazyPage>}
+        {activeTab === 'templates' && isAdmin && <LazyPage><TemplatesPage /></LazyPage>}
+        {activeTab === 'integrations' && isAdmin && <LazyPage><IntegrationsPage /></LazyPage>}
+        {activeTab === 'settings' && <LazyPage><SettingsPage /></LazyPage>}
       </AppLayout>
 
       <TaskFormModal

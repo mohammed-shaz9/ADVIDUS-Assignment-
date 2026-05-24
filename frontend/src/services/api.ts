@@ -1,7 +1,7 @@
 import type {
   User, ApiResponse, Task, TaskSummary, Agent, Analytics, Metrics, ActivityLog,
   Department, Designation, TaskComment, Approval, PerformanceScore, ExtendedAnalytics,
-  TaskTemplate, SystemSetting, Integration,
+  TaskTemplate, SystemSetting, Integration, PaginatedResponse,
 } from '../types';
 import type { Notification as NotifType } from '../types';
 
@@ -76,7 +76,7 @@ export const tasksApi = {
 // Admin
 export const adminApi = {
   // Batched dashboard endpoint - single call gets all admin data
-  getDashboard: () => request<ApiResponse<{ users: User[]; tasks: Task[]; logs: ActivityLog[]; metrics: Metrics; analytics: Analytics }>>('/admin/dashboard'),
+  getDashboard: () => request<ApiResponse<{ users: User[]; tasks: PaginatedResponse<Task>; logs: PaginatedResponse<ActivityLog>; metrics: Metrics; analytics: Analytics }>>('/admin/dashboard'),
 
   getUsers: () => request<ApiResponse<User[]>>('/admin/users'),
 
