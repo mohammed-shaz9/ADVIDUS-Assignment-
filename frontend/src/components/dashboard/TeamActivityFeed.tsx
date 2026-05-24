@@ -24,7 +24,11 @@ export const TeamActivityFeed = React.memo<TeamActivityFeedProps>(
     const teamActivity = useMemo(() => {
       // Filter team activities (exclude current user's own actions)
       const filtered = logs
-        .filter(log => log.userId !== currentUserId)
+        .filter(log => {
+          // log.userId may be a Pick<User, '_id' | 'name' | 'email' | 'role'>; compare by _id
+          const userIdObj = log.userId as any;
+          return (userIdObj && userIdObj._id ? String(userIdObj._id) : String(userIdObj)) !== String(currentUserId);
+        })
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5); // Top 5 recent
 

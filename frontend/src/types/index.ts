@@ -11,6 +11,7 @@ export interface User {
   status: UserStatus;
   lastLogin?: string;
   token?: string;
+  department?: string;
 }
 
 export interface Agent {
@@ -48,6 +49,7 @@ export interface Task {
   result?: string;
   createdAt: string;
   updatedAt: string;
+  dueDate?: string;
 }
 
 export interface ActivityLog {
