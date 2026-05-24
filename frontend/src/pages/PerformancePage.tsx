@@ -3,12 +3,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { performanceApi } from '../services/api';
 import { PerformanceScore } from '../types';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { cache } from '../utils/cache';
 
 export const PerformancePage: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-  const [scores, setScores] = useState<PerformanceScore[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [scores, setScores] = useState<PerformanceScore[]>(cache.getArray<PerformanceScore>('performance'));
+  const [loading, setLoading] = useState(scores.length === 0);
 
   useEffect(() => { loadScores(); }, []);
 
@@ -16,10 +17,14 @@ export const PerformancePage: React.FC = () => {
     try {
       if (isAdmin) {
         const res = await performanceApi.getAllPerformance();
-        setScores(res.data || []);
+        const data = Array.isArray(res.data) ? res.data : [];
+        setScores(data);
+        cache.set('performance', data);
       } else {
         const res = await performanceApi.getMyPerformance();
-        setScores(res.data ? [res.data] : []);
+        const data = res.data ? [res.data] : [];
+        setScores(data);
+        cache.set('performance', data);
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }

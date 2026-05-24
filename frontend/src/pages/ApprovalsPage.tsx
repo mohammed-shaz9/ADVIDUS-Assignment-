@@ -18,10 +18,17 @@ export const ApprovalsPage: React.FC = () => {
   };
 
   const handleDecide = async (id: string, decision: 'approved' | 'rejected') => {
+    // Optimistic update — reflect change immediately
+    setApprovals(prev => prev.map(a =>
+      a._id === id ? { ...a, status: decision, decidedAt: new Date().toISOString() } : a
+    ));
     try {
       await approvalApi.decide(id, decision);
-      loadApprovals();
-    } catch (e) { console.error(e); }
+      loadApprovals(); // background refresh
+    } catch (e) {
+      console.error(e);
+      loadApprovals(); // revert on failure
+    }
   };
 
   if (loading) return <LoadingSpinner message="Loading approvals..." />;

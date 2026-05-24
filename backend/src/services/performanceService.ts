@@ -23,15 +23,19 @@ export const getPerformanceForUser = async (userId: string) => {
 };
 
 export const getAllPerformance = async () => {
-  const users = await User.find().select('name email role department').lean();
-  const results = [];
-  for (const user of users) {
-    const perf = await PerformanceMetric.findOne({ user: user._id }).sort({ snapshotDate: -1 });
-    results.push({
-      user,
-      performance: perf || { score: 0, tasksCompleted: 0, tasksAssigned: 0, onTimeCompletion: 0, overdueTasks: 0 },
-    });
-  }
+  const [users, allMetrics] = await Promise.all([
+    User.find().select('name email role department').lean(),
+    PerformanceMetric.aggregate([
+      { $sort: { snapshotDate: -1 } },
+      { $group: { _id: '$user', metric: { $first: '$$ROOT' } } },
+    ]),
+  ]);
+  const metricMap = new Map(allMetrics.map(m => [m._id.toString(), m.metric]));
+  const results = users.map(user => ({
+    user,
+    performance: metricMap.get(user._id.toString())
+      || { score: 0, tasksCompleted: 0, tasksAssigned: 0, onTimeCompletion: 0, overdueTasks: 0 },
+  }));
   return results.sort((a: any, b: any) => b.performance.score - a.performance.score);
 };
 
