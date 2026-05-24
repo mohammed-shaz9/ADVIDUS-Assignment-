@@ -21,8 +21,15 @@ if (typeof window !== 'undefined') {
 const MainApp: React.FC = () => {
   const { user, loading, backgroundRefreshing, toasts, removeToast } = useAuth();
 
+  const isAuthPath = window.location.pathname === '/auth' || window.location.pathname === '/login';
+
   if (loading) {
     return <LoadingSpinner message="Synchronizing Security Keys..." fullPage />;
+  }
+
+  // If logged in and on auth path, redirect to dashboard
+  if (user && isAuthPath) {
+    window.history.replaceState(null, '', '/dashboard');
   }
 
   return (

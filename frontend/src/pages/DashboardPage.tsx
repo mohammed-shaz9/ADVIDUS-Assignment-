@@ -59,10 +59,38 @@ const DashboardPage: React.FC = () => {
     createAgent, toggleAgentStatus, deleteAgent,
   } = useAdmin();
 
-  const [activeTab, setActiveTab] = useState<TabType>(isAdmin ? 'dashboard' : 'tasks');
+  const TAB_PATHS: Record<string, TabType> = {
+    '/dashboard': 'dashboard', '/tasks': 'tasks', '/users': 'users',
+    '/activity': 'activity', '/org': 'org', '/approvals': 'approvals',
+    '/performance': 'performance', '/analytics': 'analytics',
+    '/templates': 'templates', '/settings': 'settings', '/integrations': 'integrations',
+  };
+  const PATH_TO_TAB: Record<TabType, string> = {
+    dashboard: '/dashboard', tasks: '/tasks', users: '/users',
+    activity: '/activity', org: '/org', approvals: '/approvals',
+    performance: '/performance', analytics: '/analytics',
+    templates: '/templates', settings: '/settings', integrations: '/integrations',
+  };
+
+  const getTabFromPath = useCallback(() => {
+    const tab = TAB_PATHS[window.location.pathname];
+    if (tab) return tab;
+    if (!isAdmin) return 'tasks';
+    return 'dashboard';
+  }, [isAdmin]);
+
+  const [activeTab, setActiveTab] = useState<TabType>(getTabFromPath());
+
+  useEffect(() => {
+    const onPop = () => setActiveTab(getTabFromPath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [getTabFromPath]);
 
   const handleTabChange = useCallback((tab: TabType) => {
     setActiveTab(tab);
+    const url = PATH_TO_TAB[tab] || '/dashboard';
+    window.history.pushState(null, '', url);
   }, []);
 
   const handleLogout = useCallback(() => {
