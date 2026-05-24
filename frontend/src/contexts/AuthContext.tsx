@@ -1,11 +1,13 @@
 import React, { createContext, useState, useEffect, useContext, useRef, useCallback, ReactNode } from 'react';
 import { User, Toast, ToastType } from '../types';
 import { authApi } from '../services/api';
+import { cache } from '../utils/cache';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  backgroundRefreshing: boolean;
   toasts: Toast[];
   theme: string;
   toggleTheme: () => void;
@@ -18,12 +20,23 @@ interface AuthContextType {
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
+const USER_CACHE_KEY = 'authUser';
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    // On first render, hydrate from cache immediately to skip the loading spinner
+    const token = localStorage.getItem('token');
+    if (token) {
+      const cached = cache.get<User>(USER_CACHE_KEY);
+      if (cached) return cached;
+    }
+    return null;
+  });
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !localStorage.getItem('token'));
+  const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounter = useRef(0);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
@@ -51,39 +64,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   }, []);
 
-  const fetchCurrentUser = useCallback(async (authToken: string) => {
-    try {
-      const response = await authApi.getMe();
-      if (response.success && response.data) {
-        setUser(response.data);
-      } else {
-        addToast('Session expired. Please log in again.', 'error');
-        logout();
-      }
-    } catch {
-      addToast('Session expired. Please log in again.', 'error');
-      logout();
-    } finally {
-      setLoading(false);
-    }
-  }, [addToast]);
-
+  // Background refresh: start immediately if token exists
+  // Shows cached data instantly, then revalidates
   useEffect(() => {
-    if (token) {
-      fetchCurrentUser(token);
-    } else {
-      setLoading(false);
-    }
-  }, [token, fetchCurrentUser]);
+    if (!token) return;
+    setBackgroundRefreshing(true);
+    authApi.getMe()
+      .then((response) => {
+        if (response.success && response.data) {
+          setUser(response.data);
+          cache.set(USER_CACHE_KEY, response.data);
+        } else {
+          // Token invalid — only logout if no cached user is showing
+          setUser((prev) => {
+            if (!prev) {
+              localStorage.removeItem('token');
+              setToken(null);
+              addToast('Session expired. Please log in again.', 'error');
+            }
+            return prev;
+          });
+        }
+      })
+      .catch(() => {
+        // Network error — keep showing cached data, don't log out
+      })
+      .finally(() => {
+        setLoading(false);
+        setBackgroundRefreshing(false);
+      });
+  }, [token, addToast]);
 
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     try {
       const response = await authApi.login(email, password);
       if (response.success && response.data) {
-        localStorage.setItem('token', response.data.token);
-        setToken(response.data.token);
-        setUser({
+        const userData: User = {
           _id: response.data._id,
           name: response.data.name,
           email: response.data.email,
@@ -91,7 +108,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           status: response.data.status as User['status'],
           lastLogin: response.data.lastLogin,
           department: (response.data as any).department,
-        });
+        };
+        localStorage.setItem('token', response.data.token);
+        cache.set(USER_CACHE_KEY, userData);
+        setToken(response.data.token);
+        setUser(userData);
         addToast(`Welcome back, ${response.data.name}!`, 'success');
         return { success: true };
       }
@@ -109,16 +130,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await authApi.register(name, email, password);
       if (response.success && response.data) {
-        localStorage.setItem('token', response.data.token);
-        setToken(response.data.token);
-        setUser({
+        const userData: User = {
           _id: response.data._id,
           name: response.data.name,
           email: response.data.email,
           role: response.data.role as User['role'],
           status: response.data.status as User['status'],
           department: (response.data as any).department,
-        });
+        };
+        localStorage.setItem('token', response.data.token);
+        cache.set(USER_CACHE_KEY, userData);
+        setToken(response.data.token);
+        setUser(userData);
         addToast('Registration successful!', 'success');
         return { success: true };
       }
@@ -133,6 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
+    cache.clear();
     setToken(null);
     setUser(null);
     addToast('Logged out successfully.', 'info');
@@ -141,7 +165,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider
       value={{
-        user, token, loading, toasts, theme,
+        user, token, loading, backgroundRefreshing, toasts, theme,
         toggleTheme, login, register, logout, addToast, removeToast,
       }}
     >

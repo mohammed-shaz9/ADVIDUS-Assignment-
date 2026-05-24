@@ -2,12 +2,17 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { tasksApi, agentsApi } from '../services/api';
 import { Task, TaskSummary, Agent } from '../types';
+import { cache } from '../utils/cache';
 
 export const useTasks = () => {
   const { token, addToast } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [taskSummary, setTaskSummary] = useState<TaskSummary | null>(null);
-  const [agents, setAgents] = useState<Agent[]>([]);
+
+  const cachedTasks = cache.get<Task[]>('tasks');
+  const [tasks, setTasks] = useState<Task[]>(cachedTasks ?? []);
+  const cachedSummary = cache.get<TaskSummary>('taskSummary');
+  const [taskSummary, setTaskSummary] = useState<TaskSummary | null>(cachedSummary);
+  const cachedAgents = cache.get<Agent[]>('agents');
+  const [agents, setAgents] = useState<Agent[]>(cachedAgents ?? []);
   const [loading, setLoading] = useState(false);
 
   const fetchTasks = useCallback(async () => {
@@ -17,6 +22,7 @@ export const useTasks = () => {
       const response = await tasksApi.getAll();
       if (response.success && response.data) {
         setTasks(response.data);
+        cache.set('tasks', response.data);
       }
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Failed to fetch tasks', 'error');
@@ -31,6 +37,7 @@ export const useTasks = () => {
       const response = await tasksApi.getSummary();
       if (response.success && response.data) {
         setTaskSummary(response.data);
+        cache.set('taskSummary', response.data);
       }
     } catch {
       // silent
@@ -43,6 +50,7 @@ export const useTasks = () => {
       const response = await agentsApi.getAll();
       if (response.success && response.data) {
         setAgents(response.data);
+        cache.set('agents', response.data);
       }
     } catch {
       // silent

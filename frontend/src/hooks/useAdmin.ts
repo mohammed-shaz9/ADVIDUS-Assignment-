@@ -2,15 +2,24 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { adminApi, agentsApi, tasksApi } from '../services/api';
 import { User, Task, ActivityLog, Agent, Analytics, Metrics } from '../types';
+import { cache } from '../utils/cache';
 
 export const useAdmin = () => {
   const { token, user, addToast } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
+
+  // Hydrate from cache immediately, before any API call
+  const cachedUsers = cache.get<User[]>('adminUsers');
+  const [users, setUsers] = useState<User[]>(cachedUsers ?? []);
+  const cachedTasks = cache.get<Task[]>('adminTasks');
+  const [tasks, setTasks] = useState<Task[]>(cachedTasks ?? []);
+  const cachedLogs = cache.get<ActivityLog[]>('adminLogs');
+  const [logs, setLogs] = useState<ActivityLog[]>(cachedLogs ?? []);
+  const cachedAgents = cache.get<Agent[]>('adminAgents');
+  const [agents, setAgents] = useState<Agent[]>(cachedAgents ?? []);
+  const cachedAnalytics = cache.get<Analytics>('adminAnalytics');
+  const [analytics, setAnalytics] = useState<Analytics | null>(cachedAnalytics);
+  const cachedMetrics = cache.get<Metrics>('adminMetrics');
+  const [metrics, setMetrics] = useState<Metrics | null>(cachedMetrics);
   const [loading, setLoading] = useState(false);
   const [refreshingAnalytics, setRefreshingAnalytics] = useState(false);
 
@@ -21,6 +30,7 @@ export const useAdmin = () => {
       const response = await adminApi.getAnalytics();
       if (response.success && response.data) {
         setAnalytics(response.data);
+        cache.set('adminAnalytics', response.data);
       }
     } catch (err) {
       addToast('Error loading analytics', 'error');
@@ -35,6 +45,7 @@ export const useAdmin = () => {
       const response = await adminApi.getMetrics();
       if (response.success && response.data) {
         setMetrics(response.data);
+        cache.set('adminMetrics', response.data);
       }
     } catch {
       // silent
@@ -47,6 +58,7 @@ export const useAdmin = () => {
       const response = await adminApi.getUsers();
       if (response.success && response.data) {
         setUsers(response.data);
+        cache.set('adminUsers', response.data);
       }
     } catch {
       // silent
@@ -59,6 +71,7 @@ export const useAdmin = () => {
       const response = await adminApi.getTasks(params);
       if (response.success && response.items) {
         setTasks(response.items as unknown as Task[]);
+        cache.set('adminTasks', response.items as unknown as Task[]);
       }
     } catch {
       // silent
@@ -71,6 +84,7 @@ export const useAdmin = () => {
       const response = await adminApi.getLogs(params);
       if (response.success && response.items) {
         setLogs(response.items as unknown as ActivityLog[]);
+        cache.set('adminLogs', response.items as unknown as ActivityLog[]);
       }
     } catch {
       // silent
@@ -83,6 +97,7 @@ export const useAdmin = () => {
       const response = await agentsApi.getAll();
       if (response.success && response.data) {
         setAgents(response.data);
+        cache.set('adminAgents', response.data);
       }
     } catch {
       // silent
@@ -96,11 +111,12 @@ export const useAdmin = () => {
       // Use batched endpoint to reduce 6 calls to 1
       const response = await adminApi.getDashboard();
       if (response.success && response.data) {
-        setUsers(response.data.users || []);
-        setTasks(response.data.tasks || []);
-        setLogs(response.data.logs || []);
-        setMetrics(response.data.metrics || null);
-        setAnalytics(response.data.analytics || null);
+        const { users: u, tasks: t, logs: l, metrics: m, analytics: a } = response.data;
+        setUsers(u || []); cache.set('adminUsers', u || []);
+        setTasks(t || []); cache.set('adminTasks', t || []);
+        setLogs(l || []); cache.set('adminLogs', l || []);
+        setMetrics(m || null); cache.set('adminMetrics', m);
+        setAnalytics(a || null); cache.set('adminAnalytics', a);
       }
     } catch {
       // silent
