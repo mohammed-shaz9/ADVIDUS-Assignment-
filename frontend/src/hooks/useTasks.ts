@@ -7,12 +7,9 @@ import { cache } from '../utils/cache';
 export const useTasks = () => {
   const { token, addToast } = useAuth();
 
-  const cachedTasks = cache.get<Task[]>('tasks');
-  const [tasks, setTasks] = useState<Task[]>(cachedTasks ?? []);
-  const cachedSummary = cache.get<TaskSummary>('taskSummary');
-  const [taskSummary, setTaskSummary] = useState<TaskSummary | null>(cachedSummary);
-  const cachedAgents = cache.get<Agent[]>('agents');
-  const [agents, setAgents] = useState<Agent[]>(cachedAgents ?? []);
+  const [tasks, setTasks] = useState<Task[]>(cache.getArray<Task>('tasks'));
+  const [taskSummary, setTaskSummary] = useState<TaskSummary | null>(cache.get<TaskSummary>('taskSummary'));
+  const [agents, setAgents] = useState<Agent[]>(cache.getArray<Agent>('agents'));
   const [loading, setLoading] = useState(false);
 
   const fetchTasks = useCallback(async () => {

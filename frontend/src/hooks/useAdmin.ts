@@ -8,18 +8,12 @@ export const useAdmin = () => {
   const { token, user, addToast } = useAuth();
 
   // Hydrate from cache immediately, before any API call
-  const cachedUsers = cache.get<User[]>('adminUsers');
-  const [users, setUsers] = useState<User[]>(cachedUsers ?? []);
-  const cachedTasks = cache.get<Task[]>('adminTasks');
-  const [tasks, setTasks] = useState<Task[]>(cachedTasks ?? []);
-  const cachedLogs = cache.get<ActivityLog[]>('adminLogs');
-  const [logs, setLogs] = useState<ActivityLog[]>(cachedLogs ?? []);
-  const cachedAgents = cache.get<Agent[]>('adminAgents');
-  const [agents, setAgents] = useState<Agent[]>(cachedAgents ?? []);
-  const cachedAnalytics = cache.get<Analytics>('adminAnalytics');
-  const [analytics, setAnalytics] = useState<Analytics | null>(cachedAnalytics);
-  const cachedMetrics = cache.get<Metrics>('adminMetrics');
-  const [metrics, setMetrics] = useState<Metrics | null>(cachedMetrics);
+  const [users, setUsers] = useState<User[]>(cache.getArray<User>('adminUsers'));
+  const [tasks, setTasks] = useState<Task[]>(cache.getArray<Task>('adminTasks'));
+  const [logs, setLogs] = useState<ActivityLog[]>(cache.getArray<ActivityLog>('adminLogs'));
+  const [agents, setAgents] = useState<Agent[]>(cache.getArray<Agent>('adminAgents'));
+  const [analytics, setAnalytics] = useState<Analytics | null>(cache.get<Analytics>('adminAnalytics'));
+  const [metrics, setMetrics] = useState<Metrics | null>(cache.get<Metrics>('adminMetrics'));
   const [loading, setLoading] = useState(false);
   const [refreshingAnalytics, setRefreshingAnalytics] = useState(false);
 

@@ -30,6 +30,11 @@ export const cache = {
     }
   },
 
+  getArray<T>(key: string): T[] {
+    const data = this.get<T[]>(key);
+    return Array.isArray(data) ? data : [];
+  },
+
   set<T>(key: string, data: T): void {
     try {
       const entry: CacheEntry<T> = { data, timestamp: Date.now() };
