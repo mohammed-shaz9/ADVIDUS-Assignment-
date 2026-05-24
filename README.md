@@ -1,7 +1,18 @@
 # ADVIDUS Enterprise Platform
-🛒 ADVIDUS
 
-React 19 · Vite 8 · TypeScript · Node 22 · Express 4 · MongoDB 7 · Mongoose 8 · Socket.IO · JWT · Docker Compose · Render · MongoDB Atlas · Chart.js · Winston
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white&style=flat-square)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white&style=flat-square)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white&style=flat-square)
+![Node](https://img.shields.io/badge/Node-22-5FA04E?logo=nodedotjs&logoColor=white&style=flat-square)
+![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white&style=flat-square)
+![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?logo=mongodb&logoColor=white&style=flat-square)
+![Mongoose](https://img.shields.io/badge/Mongoose-8-880000?logo=mongodb&logoColor=white&style=flat-square)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-4-010101?logo=socketdotio&logoColor=white&style=flat-square)
+![JWT](https://img.shields.io/badge/JWT-black?logo=jsonwebtokens&logoColor=white&style=flat-square)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white&style=flat-square)
+![Render](https://img.shields.io/badge/Render-46E3B7?logo=render&logoColor=white&style=flat-square)
+![Chart.js](https://img.shields.io/badge/Chart.js-4-FF6384?logo=chartdotjs&logoColor=white&style=flat-square)
+![Winston](https://img.shields.io/badge/Winston-4-231F20?style=flat-square)
 
 📌 Demonstrates Enterprise RBAC Concepts and Real-Time Systems
 RBAC · Drag-and-Drop Kanban · Multi-Level Approvals · Real-Time WebSocket · N+1 Query Elimination · Audit Logging · Performance Analytics · Session Management · Departmental Access Control · Task Templates · Activity Simulation
