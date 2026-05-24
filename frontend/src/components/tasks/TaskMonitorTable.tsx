@@ -14,7 +14,8 @@ interface TaskMonitorTableProps {
 export const TaskMonitorTable: React.FC<TaskMonitorTableProps> = ({
   tasks, search, statusFilter, onSearchChange, onStatusFilterChange, onOpenConsole, onForceDelete,
 }) => {
-  const filtered = tasks.filter(t => {
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const filtered = safeTasks.filter(t => {
     const q = search.toLowerCase();
     const matchSearch =
       t.title.toLowerCase().includes(q) ||

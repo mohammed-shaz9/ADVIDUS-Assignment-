@@ -19,10 +19,11 @@ interface DepartmentStatsProps {
  */
 export const DepartmentStats = React.memo<DepartmentStatsProps>(
   ({ users, currentUserDept, loading }) => {
+    const safeUsers = Array.isArray(users) ? users : [];
     const deptStats = useMemo(() => {
       if (!currentUserDept) return null;
       
-      const deptUsers = users.filter(u => u.department === currentUserDept);
+      const deptUsers = safeUsers.filter(u => u.department === currentUserDept);
       const stats = {
         total: deptUsers.length,
         active: deptUsers.filter(u => u.status === 'active').length,
@@ -36,7 +37,7 @@ export const DepartmentStats = React.memo<DepartmentStatsProps>(
       });
 
       return stats;
-    }, [users, currentUserDept]);
+    }, [safeUsers, currentUserDept]);
 
     if (loading) return <Skeleton height="140px" count={3} />;
     if (!deptStats) {

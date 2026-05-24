@@ -13,6 +13,8 @@ interface UserManagementTableProps {
 export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   users, tasks, currentUserId, onToggleStatus, onDeleteUser, onViewAll,
 }) => {
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeUsers = Array.isArray(users) ? users : [];
   const avatarColors = [
     { bg: '#6C63FF', color: '#fff' },
     { bg: 'rgba(34,197,94,0.2)', color: '#22C55E' },
@@ -39,8 +41,8 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {users.slice(0, 5).map(u => {
-              const userTaskCount = tasks.filter(t =>
+            {safeUsers.slice(0, 5).map(u => {
+              const userTaskCount = safeTasks.filter(t =>
                 (t.owner && typeof t.owner === 'object' && '_id' in t.owner && t.owner._id === u._id)
               ).length;
               const colorIdx = u.role === 'admin' ? 0 : (u.name.charCodeAt(0) % (avatarColors.length - 1)) + 1;

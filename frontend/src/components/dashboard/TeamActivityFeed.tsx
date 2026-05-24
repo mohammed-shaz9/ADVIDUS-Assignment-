@@ -21,9 +21,10 @@ interface TeamActivityFeedProps {
  */
 export const TeamActivityFeed = React.memo<TeamActivityFeedProps>(
   ({ logs, currentUserId, loading }) => {
+    const safeLogs = Array.isArray(logs) ? logs : [];
     const teamActivity = useMemo(() => {
       // Filter team activities (exclude current user's own actions)
-      const filtered = logs
+      const filtered = safeLogs
         .filter(log => {
           // log.userId may be a Pick<User, '_id' | 'name' | 'email' | 'role'>; compare by _id
           const userIdObj = log.userId as any;
@@ -33,7 +34,7 @@ export const TeamActivityFeed = React.memo<TeamActivityFeedProps>(
         .slice(0, 5); // Top 5 recent
 
       return filtered;
-    }, [logs, currentUserId]);
+    }, [safeLogs, currentUserId]);
 
     const getActionIcon = (action: string): { icon: string; color: string } => {
       const iconMap: Record<string, { icon: string; color: string }> = {

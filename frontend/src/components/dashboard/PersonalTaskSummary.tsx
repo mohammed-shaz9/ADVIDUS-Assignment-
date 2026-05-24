@@ -20,17 +20,18 @@ interface PersonalTaskSummaryProps {
  */
 export const PersonalTaskSummary = React.memo<PersonalTaskSummaryProps>(
   ({ tasks, loading }) => {
+    const safeTasks = Array.isArray(tasks) ? tasks : [];
     const summary = useMemo(() => {
       const stats = {
-        total: tasks.length,
-        pending: tasks.filter(t => t.status === 'pending').length,
-        inProgress: tasks.filter(t => t.status === 'in_progress').length,
-        completed: tasks.filter(t => t.status === 'completed').length,
-        overdue: tasks.filter(t => new Date(t.dueDate || '') < new Date() && t.status !== 'completed').length,
+        total: safeTasks.length,
+        pending: safeTasks.filter(t => t.status === 'pending').length,
+        inProgress: safeTasks.filter(t => t.status === 'in_progress').length,
+        completed: safeTasks.filter(t => t.status === 'completed').length,
+        overdue: safeTasks.filter(t => new Date(t.dueDate || '') < new Date() && t.status !== 'completed').length,
       };
       const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
       return { stats, completionRate };
-    }, [tasks]);
+    }, [safeTasks]);
 
     if (loading) return <Skeleton height="140px" count={3} />;
 

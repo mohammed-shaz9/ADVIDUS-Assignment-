@@ -23,13 +23,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
   onEdit, onDelete, onOpenConsole,
 }) => {
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
   return (
     <div className="kanban-board">
       {COLUMNS.map(status => (
         <KanbanColumn
           key={status}
           status={status}
-          tasks={tasks.filter(t => t.status === status)}
+          tasks={safeTasks.filter(t => t.status === status)}
           dragOverColumn={dragOverColumn}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}

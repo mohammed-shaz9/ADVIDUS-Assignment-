@@ -6,13 +6,14 @@ interface WeeklyChartProps {
 }
 
 export const WeeklyChart: React.FC<WeeklyChartProps> = ({ tasks }) => {
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
   const breakdown = useMemo(() => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const defaultHeights = [45, 70, 85, 35, 60, 90, 55];
     const defaultTypes = ['pending', 'inprogress', 'completed', 'pending', 'inprogress', 'completed', 'completed'];
 
     return days.map((day, idx) => {
-      const tasksOnDay = tasks.filter(t => {
+      const tasksOnDay = safeTasks.filter(t => {
         const d = new Date(t.createdAt).getDay();
         const targetDayIdx = idx === 6 ? 0 : idx + 1;
         return d === targetDayIdx;
@@ -43,7 +44,7 @@ export const WeeklyChart: React.FC<WeeklyChartProps> = ({ tasks }) => {
 
       return { day, height, type };
     });
-  }, [tasks]);
+  }, [safeTasks]);
 
   return (
     <div className="panel">

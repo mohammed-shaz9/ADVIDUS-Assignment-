@@ -16,7 +16,8 @@ export const UserTable: React.FC<UserTableProps> = ({
   users, currentUserId, search, statusFilter,
   onSearchChange, onStatusFilterChange, onToggleStatus, onDelete,
 }) => {
-  const filtered = users.filter(u => {
+  const safeUsers = Array.isArray(users) ? users : [];
+  const filtered = safeUsers.filter(u => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || u.status === statusFilter;

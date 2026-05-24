@@ -27,7 +27,9 @@ const getBadgeStyle = (action: string): string => {
   }
 };
 
-export const ActivityFeed: React.FC<ActivityFeedProps> = ({ logs, onViewAll }) => (
+export const ActivityFeed: React.FC<ActivityFeedProps> = ({ logs, onViewAll }) => {
+  const safeLogs = Array.isArray(logs) ? logs : [];
+  return (
   <div className="panel">
     <div className="panel-header">
       <span className="panel-title">Activity feed</span>
@@ -35,8 +37,8 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ logs, onViewAll }) =
     </div>
     <div className="panel-body">
       <div className="activity-list">
-        {logs.length > 0 ? (
-          logs.slice(0, 4).map(log => (
+        {safeLogs.length > 0 ? (
+          safeLogs.slice(0, 4).map(log => (
             <div className="activity-item" key={log._id}>
               <div className={`act-dot ${getBadgeStyle(log.action)}`}>
                 <i className={getIconClass(log.action)} aria-hidden="true"></i>
@@ -58,3 +60,4 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ logs, onViewAll }) =
     </div>
   </div>
 );
+};
