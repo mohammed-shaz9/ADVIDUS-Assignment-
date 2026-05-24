@@ -75,6 +75,9 @@ export const tasksApi = {
 
 // Admin
 export const adminApi = {
+  // Batched dashboard endpoint - single call gets all admin data
+  getDashboard: () => request<ApiResponse<{ users: User[]; tasks: Task[]; logs: ActivityLog[]; metrics: Metrics; analytics: Analytics }>>('/admin/dashboard'),
+
   getUsers: () => request<ApiResponse<User[]>>('/admin/users'),
 
   toggleUserStatus: (id: string) =>

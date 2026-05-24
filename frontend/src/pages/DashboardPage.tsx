@@ -9,6 +9,9 @@ import { AIInsightCard } from '../components/dashboard/AIInsightCard';
 import { WeeklyChart } from '../components/dashboard/WeeklyChart';
 import { ActivityFeed } from '../components/dashboard/ActivityFeed';
 import { UserManagementTable } from '../components/dashboard/UserManagementTable';
+import { PersonalTaskSummary } from '../components/dashboard/PersonalTaskSummary';
+import { DepartmentStats } from '../components/dashboard/DepartmentStats';
+import { TeamActivityFeed } from '../components/dashboard/TeamActivityFeed';
 import { KanbanBoard } from '../components/tasks/KanbanBoard';
 import { TaskFormModal } from '../components/tasks/TaskFormModal';
 import { TaskMonitorTable } from '../components/tasks/TaskMonitorTable';
@@ -128,6 +131,18 @@ const DashboardPage: React.FC = () => {
     }, 4000);
     return () => clearInterval(interval);
   }, [token, fetchTaskSummary, fetchUserTasks]);
+
+  // Non-admin polling — fetch team/department data for widgets
+  useEffect(() => {
+    if (!token || isAdmin) return;
+    fetchUsers();
+    fetchLogs();
+    const interval = setInterval(() => {
+      fetchUsers();
+      fetchLogs();
+    }, 8000); // Less frequent than admin polling
+    return () => clearInterval(interval);
+  }, [token, isAdmin, fetchUsers, fetchLogs]);
 
   useEffect(() => {
     if (!token || !isAdmin) return;
@@ -417,12 +432,32 @@ const DashboardPage: React.FC = () => {
                       </div>
                       <div className="stat-val">{taskSummary?.counts.completed || 0}</div>
                       <div className="stat-label">Completed</div>
-                    </div>
-                  </div>
-                </>
-              )}
+                     </div>
+                   </div>
+                 </>
+               )}
 
-              <KanbanBoard
+               {/* Employee-specific widgets - Personal Dashboard */}
+               {!isAdmin && (
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                   <PersonalTaskSummary 
+                     tasks={userTasks} 
+                     loading={loadingTasks}
+                   />
+                   <DepartmentStats 
+                     users={adminUsers} 
+                     currentUserDept={user?.department}
+                     loading={loadingAdmin}
+                   />
+                   <TeamActivityFeed 
+                     logs={adminLogs} 
+                     currentUserId={user?._id || ''}
+                     loading={loadingAdmin}
+                   />
+                 </div>
+               )}
+
+               <KanbanBoard
                 tasks={myTasksFiltered}
                 draggingTaskId={draggingTaskId}
                 dragOverColumn={dragOverColumn}

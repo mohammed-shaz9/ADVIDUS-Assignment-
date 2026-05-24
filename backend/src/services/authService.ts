@@ -106,6 +106,18 @@ export const ensureDemoUsers = async () => {
 };
 
 export const getDemoCredentials = async () => {
-  const users = await User.find({ role: 'user' }).limit(5).select('name email role');
-  return users.map(u => ({ name: u.name, email: u.email, role: u.role }));
+  // Get 5 real employees from different departments to show on login page
+  const users = await User.find({ role: 'user', status: 'active' })
+    .limit(5)
+    .select('name email role department')
+    .lean();
+  
+  // Return with display-friendly format and hardcoded password hint (all users have same password)
+  return users.map(u => ({ 
+    name: u.name, 
+    email: u.email, 
+    role: 'Employee', 
+    password: 'User@123',
+    department: u.department,
+  }));
 };

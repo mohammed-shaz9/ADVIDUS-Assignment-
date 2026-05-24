@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <!-- Background -->
+  <rect width="200" height="60" fill="none"/>
+  
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6C63FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#22C55E;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Logo symbol - three connected circles -->
+  <circle cx="18" cy="20" r="6" fill="#6C63FF" opacity="0.9"/>
+  <circle cx="28" cy="30" r="6" fill="url(#logoGradient)" opacity="0.9"/>
+  <circle cx="18" cy="40" r="6" fill="#22C55E" opacity="0.9"/>
+  
+  <!-- Connection lines -->
+  <line x1="18" y1="26" x2="28" y2="30" stroke="#6C63FF" stroke-width="1.5" opacity="0.6"/>
+  <line x1="28" y1="30" x2="18" y2="40" stroke="#22C55E" stroke-width="1.5" opacity="0.6"/>
+  
+  <!-- ADVIDUS Text -->
+  <text x="45" y="32" font-family="'Plus Jakarta Sans', 'Inter', sans-serif" font-size="18" font-weight="900" font-style="italic" fill="#ffffff" letter-spacing="-0.5">ADVIDUS</text>
+  
+  <!-- Subtext -->
+  <text x="45" y="48" font-family="'Inter', sans-serif" font-size="8" fill="rgba(255,255,255,0.6)" letter-spacing="0.5">INTERACTIVE</text>
+</svg>

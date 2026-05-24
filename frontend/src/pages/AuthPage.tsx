@@ -5,6 +5,8 @@ interface DemoUser {
   name: string;
   email: string;
   role: string;
+  password: string;
+  department?: string;
 }
 
 const AuthPage: React.FC = () => {
@@ -70,18 +72,26 @@ const AuthPage: React.FC = () => {
         }}></div>
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '48px' }}>
+            {/* ADVIDUS Logo and Title */}
             <div style={{
-              width: '44px', height: '44px', borderRadius: '12px',
-              background: 'rgba(108,99,255,0.15)', border: '0.5px solid rgba(108,99,255,0.25)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '48px', fontWeight: 900, fontStyle: 'italic',
+              background: 'linear-gradient(135deg, #6C63FF 0%, #A5B4FC 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              letterSpacing: '-0.02em', marginBottom: '8px',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}>
-              <i className="ti ti-pencil" style={{ fontSize: '22px', color: '#6C63FF' }}></i>
+              ADVIDUS
             </div>
-            <div>
-              <h2 style={{ color: '#fff', fontWeight: 700, fontSize: '22px', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>TaskFlow</h2>
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', margin: '2px 0 0 0' }}>Enterprise Platform</p>
-            </div>
+            <p style={{
+              color: 'rgba(255,255,255,0.5)', fontSize: '13px',
+              letterSpacing: '1px', fontWeight: 600, margin: 0,
+              textTransform: 'uppercase',
+            }}>
+              Interactive RBAC Enterprise Platform
+            </p>
           </div>
 
           <h1 style={{
@@ -231,33 +241,36 @@ const AuthPage: React.FC = () => {
           <div style={{
             marginTop: '28px', padding: '14px', background: 'rgba(255,255,255,0.02)',
             border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: '10px',
-            maxHeight: '220px', overflowY: 'auto',
+            maxHeight: '260px', overflowY: 'auto',
           }}>
             <div style={{
               fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase',
               letterSpacing: '0.8px', fontWeight: 600, marginBottom: '8px',
-            }}>Demo Credentials</div>
+            }}>Real Employee Credentials (+ Admin)</div>
             <div style={{ display: 'flex', flexDirection: 'column', fontSize: '10px', fontFamily: "'JetBrains Mono', monospace" }}>
-              <div style={{ display: 'flex', padding: '4px 6px', color: 'rgba(255,255,255,0.25)', fontWeight: 600 }}>
-                <span style={{ width: '50px' }}>Role</span>
-                <span style={{ flex: 1 }}>Email</span>
-                <span style={{ width: '80px', textAlign: 'right' }}>Password</span>
+              <div style={{ display: 'flex', padding: '4px 6px', color: 'rgba(255,255,255,0.25)', fontWeight: 600, gap: '6px' }}>
+                <span style={{ flex: 1 }}>Name</span>
+                <span style={{ flex: 1.2 }}>Email</span>
+                <span style={{ width: '90px', textAlign: 'center' }}>Password</span>
               </div>
               {[
-                { role: 'Admin', email: 'admin@example.com', password: 'Admin@123' },
-                ...demoUsers.map(u => ({ role: 'User', email: u.email, password: 'User@123' })),
+                { name: 'Admin', email: 'admin@example.com', password: 'Admin@123', role: 'Admin' },
+                ...demoUsers.map(u => ({ name: u.name, email: u.email, password: u.password, role: 'Employee' })),
               ].map((item, idx) => (
                 <div key={idx} style={{
-                  display: 'flex', padding: '5px 6px', borderRadius: '4px',
+                  display: 'flex', padding: '6px 6px', borderRadius: '4px', gap: '6px',
                   background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
-                  color: 'rgba(255,255,255,0.5)',
+                  color: 'rgba(255,255,255,0.5)', alignItems: 'center',
                 }}>
-                  <span style={{ width: '50px', color: item.role === 'Admin' ? '#6C63FF' : '#22C55E' }}>{item.role}</span>
-                  <span style={{ flex: 1 }}>{item.email}</span>
-                  <span style={{ width: '80px', textAlign: 'right' }}>{item.password}</span>
+                  <span style={{ flex: 1, color: item.role === 'Admin' ? '#6C63FF' : '#22C55E', fontSize: '9px' }}>{item.name.slice(0, 20)}</span>
+                  <span style={{ flex: 1.2, fontSize: '9px', wordBreak: 'break-all' }}>{item.email}</span>
+                  <span style={{ width: '90px', textAlign: 'center', color: item.role === 'Admin' ? '#6C63FF' : '#22C55E', fontWeight: 600 }}>{item.password}</span>
                 </div>
               ))}
             </div>
+            <p style={{ fontSize: '8px', color: 'rgba(255,255,255,0.2)', marginTop: '8px', margin: '8px 0 0 0' }}>
+              💡 Copy any email + password above to test the dashboard
+            </p>
           </div>
 
           <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '10px', color: 'rgba(255,255,255,0.15)' }}>

@@ -93,16 +93,21 @@ export const useAdmin = () => {
     if (!token || user?.role !== 'admin') return;
     setLoading(true);
     try {
-      await Promise.all([
-        fetchAnalytics(), fetchMetrics(), fetchUsers(),
-        fetchTasks(), fetchLogs(), fetchAgents(),
-      ]);
+      // Use batched endpoint to reduce 6 calls to 1
+      const response = await adminApi.getDashboard();
+      if (response.success && response.data) {
+        setUsers(response.data.users || []);
+        setTasks(response.data.tasks || []);
+        setLogs(response.data.logs || []);
+        setMetrics(response.data.metrics || null);
+        setAnalytics(response.data.analytics || null);
+      }
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
-  }, [token, user, fetchAnalytics, fetchMetrics, fetchUsers, fetchTasks, fetchLogs, fetchAgents]);
+  }, [token, user]);
 
   const toggleUserStatus = useCallback(async (targetUserId: string) => {
     if (!token) return false;
