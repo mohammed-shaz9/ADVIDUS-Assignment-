@@ -17,9 +17,16 @@ export const calculateUserScore = async (userId: string) => {
 
 export const getPerformanceForUser = async (userId: string) => {
   const metric = await PerformanceMetric.findOne({ user: userId }).sort({ snapshotDate: -1 });
-  if (metric) return metric;
-  const computed = await calculateUserScore(userId);
-  return PerformanceMetric.create({ user: userId, ...computed, period: 'daily', snapshotDate: new Date() });
+  const user = await User.findById(userId).select('name email role').lean();
+  const performance = metric
+    ? { score: metric.score, tasksCompleted: metric.tasksCompleted, tasksAssigned: metric.tasksAssigned, onTimeCompletion: metric.onTimeCompletion, overdueTasks: metric.overdueTasks, avgCompletionHours: metric.avgCompletionHours }
+    : { score: 0, tasksCompleted: 0, tasksAssigned: 0, onTimeCompletion: 0, overdueTasks: 0, avgCompletionHours: 0 };
+  if (!metric) {
+    const computed = await calculateUserScore(userId);
+    Object.assign(performance, computed);
+    await PerformanceMetric.create({ user: userId, ...computed, period: 'daily', snapshotDate: new Date() });
+  }
+  return { user, performance };
 };
 
 export const getAllPerformance = async () => {

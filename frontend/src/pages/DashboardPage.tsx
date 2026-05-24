@@ -529,13 +529,13 @@ const DashboardPage: React.FC = () => {
           />
         )}
 
-        {activeTab === 'org' && isAdmin && <LazyPage><OrganizationPage /></LazyPage>}
-        {activeTab === 'approvals' && isAdmin && <LazyPage><ApprovalsPage /></LazyPage>}
-        {activeTab === 'analytics' && <LazyPage><AnalyticsPage /></LazyPage>}
-        {activeTab === 'performance' && <LazyPage><PerformancePage /></LazyPage>}
-        {activeTab === 'templates' && isAdmin && <LazyPage><TemplatesPage /></LazyPage>}
-        {activeTab === 'integrations' && isAdmin && <LazyPage><IntegrationsPage /></LazyPage>}
-        {activeTab === 'settings' && <LazyPage><SettingsPage /></LazyPage>}
+        {activeTab === 'org' && isAdmin && <LazyPage key="org"><OrganizationPage /></LazyPage>}
+        {activeTab === 'approvals' && isAdmin && <LazyPage key="approvals"><ApprovalsPage /></LazyPage>}
+        {activeTab === 'analytics' && <LazyPage key="analytics"><AnalyticsPage /></LazyPage>}
+        {activeTab === 'performance' && <LazyPage key="performance"><PerformancePage /></LazyPage>}
+        {activeTab === 'templates' && isAdmin && <LazyPage key="templates"><TemplatesPage /></LazyPage>}
+        {activeTab === 'integrations' && isAdmin && <LazyPage key="integrations"><IntegrationsPage /></LazyPage>}
+        {activeTab === 'settings' && <LazyPage key="settings"><SettingsPage /></LazyPage>}
       </AppLayout>
 
       <TaskFormModal

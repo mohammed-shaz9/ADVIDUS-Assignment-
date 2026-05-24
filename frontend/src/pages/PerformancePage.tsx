@@ -30,6 +30,8 @@ export const PerformancePage: React.FC = () => {
     finally { setLoading(false); }
   };
 
+  const safeScores = scores.filter(s => s && s.performance && typeof s.performance.score === 'number');
+
   if (loading) return <LoadingSpinner message="Loading performance data..." />;
 
   const getScoreColor = (score: number) => {
@@ -38,8 +40,8 @@ export const PerformancePage: React.FC = () => {
     return '#ef4444';
   };
 
-  const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, s) => a + s.performance.score, 0) / scores.length) : 0;
-  const topScorers = [...scores].sort((a, b) => b.performance.score - a.performance.score).slice(0, 3);
+  const avgScore = safeScores.length > 0 ? Math.round(safeScores.reduce((a, s) => a + s.performance.score, 0) / safeScores.length) : 0;
+  const topScorers = [...safeScores].sort((a, b) => b.performance.score - a.performance.score).slice(0, 3);
 
   return (
     <div className="page-container">
@@ -50,11 +52,11 @@ export const PerformancePage: React.FC = () => {
         </button>
       </div>
 
-      {scores.length > 0 && (
+      {safeScores.length > 0 && (
         <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(99,102,241,0.15)', color: '#6366f1' }}><i className="ti ti-users"></i></div>
-            <div className="stat-val">{scores.length}</div>
+            <div className="stat-val">{safeScores.length}</div>
             <div className="stat-label">Employees Scored</div>
           </div>
           <div className="stat-card">
@@ -71,7 +73,7 @@ export const PerformancePage: React.FC = () => {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-        {scores.map((item, i) => {
+        {safeScores.map((item, i) => {
           const perf = item.performance;
           const color = getScoreColor(perf.score);
           return (
@@ -108,7 +110,7 @@ export const PerformancePage: React.FC = () => {
         })}
       </div>
 
-      {scores.length === 0 && (
+      {safeScores.length === 0 && !loading && (
         <div className="card"><div className="card-body" style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No performance data yet. Click "Refresh Snapshot" to calculate scores.</div></div>
       )}
     </div>
