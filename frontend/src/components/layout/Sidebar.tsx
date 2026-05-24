@@ -63,15 +63,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, onTabChange, 
 
   return (
     <div className="sidebar">
-      <div className="logo">
-        {/* Use SVG logo (scalable), fallback to PNG if not supported */}
-        <picture>
+      <div className="sidebar-brand">
+        <picture className="sidebar-logo-pic">
           <source srcSet="/logo.svg" type="image/svg+xml" />
-          <img src="/Screenshot 2026-05-24 010501.png" alt="ADVIDUS Logo" className="logo-icon" loading="lazy" />
+          <img src="/Screenshot 2026-05-24 010501.png" alt="ADVIDUS" className="sidebar-logo-img" loading="lazy" />
         </picture>
-        <div>
-          <div className="logo-text" style={{ fontStyle: 'italic', fontWeight: 900, background: 'linear-gradient(135deg, #6C63FF 0%, #A5B4FC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>ADVIDUS</div>
-          <div className="logo-sub">Enterprise Platform</div>
+        <div className="sidebar-brand-text">
+          <div className="sidebar-brand-title" style={{ fontStyle: 'italic', fontWeight: 900, background: 'linear-gradient(135deg, #6C63FF 0%, #A5B4FC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>ADVIDUS</div>
+          <div className="sidebar-brand-sub">Enterprise Platform</div>
         </div>
       </div>
 
