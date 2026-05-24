@@ -37,7 +37,7 @@ export const Topbar: React.FC<TopbarProps> = ({ user, pageTitle, pageSub, active
       </div>
       <div className="topbar-actions">
         <NotificationBell />
-        <span className="badge-admin">{user.role}</span>
+        <span className="badge-admin">{user.role || 'user'}</span>
       </div>
     </div>
   );

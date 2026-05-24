@@ -1,5 +1,17 @@
 const CACHE_PREFIX = 'advidus_cache_';
-const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 min before considered stale
+const CACHE_VERSION_KEY = CACHE_PREFIX + '_version';
+const CACHE_VERSION = '2'; // bump to invalidate all caches on deploy
+const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 min
+
+// Auto-invalidate all caches when version changes (e.g. after deploy)
+try {
+  if (localStorage.getItem(CACHE_VERSION_KEY) !== CACHE_VERSION) {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(CACHE_PREFIX))
+      .forEach(k => localStorage.removeItem(k));
+    localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
+  }
+} catch { /* localStorage unavailable */ }
 
 interface CacheEntry<T> {
   data: T;

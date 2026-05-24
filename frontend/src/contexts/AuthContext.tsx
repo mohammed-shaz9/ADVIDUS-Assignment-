@@ -29,8 +29,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // On first render, hydrate from cache immediately to skip the loading spinner
     const token = localStorage.getItem('token');
     if (token) {
-      const cached = cache.get<User>(USER_CACHE_KEY);
-      if (cached) return cached;
+      const cached = cache.get<Record<string, unknown>>(USER_CACHE_KEY);
+      // Validate cached user has required fields before accepting
+      if (cached && typeof cached._id === 'string' && typeof cached.name === 'string' && typeof cached.email === 'string') {
+        return cached as unknown as User;
+      }
+      // Invalid cache — clear it
+      cache.clear(USER_CACHE_KEY);
     }
     return null;
   });

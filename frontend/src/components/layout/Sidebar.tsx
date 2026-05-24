@@ -98,10 +98,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, onTabChange, 
 
       <div className="sidebar-bottom">
         <div className="user-pill">
-          <div className="avatar">{user.name.slice(0, 2).toUpperCase()}</div>
+          <div className="avatar">{(user.name || '?').slice(0, 2).toUpperCase()}</div>
           <div className="user-info">
-            <div className="user-name">{user.name}</div>
-            <div className="user-role">{user.role} · {user.role === 'admin' ? 'Executive' : 'Employee'}</div>
+            <div className="user-name">{user.name || 'Unknown'}</div>
+            <div className="user-role">{user.role === 'admin' ? 'Admin · Executive' : user.role === 'user' ? 'User · Employee' : 'User'}</div>
           </div>
           <i className="ti ti-logout" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }} onClick={onLogout}></i>
         </div>
