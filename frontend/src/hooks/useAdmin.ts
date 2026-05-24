@@ -42,7 +42,7 @@ export const useAdmin = () => {
   }, [token, user]);
 
   const fetchUsers = useCallback(async () => {
-    if (!token || user?.role !== 'admin') return;
+    if (!token) return;
     try {
       const response = await adminApi.getUsers();
       if (response.success && response.data) {
@@ -51,7 +51,7 @@ export const useAdmin = () => {
     } catch {
       // silent
     }
-  }, [token, user]);
+  }, [token]);
 
   const fetchTasks = useCallback(async (params?: Record<string, string>) => {
     if (!token || user?.role !== 'admin') return;
@@ -66,7 +66,7 @@ export const useAdmin = () => {
   }, [token, user]);
 
   const fetchLogs = useCallback(async (params?: Record<string, string>) => {
-    if (!token || user?.role !== 'admin') return;
+    if (!token) return;
     try {
       const response = await adminApi.getLogs(params);
       if (response.success && response.items) {
@@ -75,7 +75,7 @@ export const useAdmin = () => {
     } catch {
       // silent
     }
-  }, [token, user]);
+  }, [token]);
 
   const fetchAgents = useCallback(async () => {
     if (!token || user?.role !== 'admin') return;

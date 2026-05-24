@@ -20,14 +20,34 @@ const AuthPage: React.FC = () => {
   const [demoUsers, setDemoUsers] = useState<DemoUser[]>([]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        await fetch(`${API_URL}/auth/ensure-demo`, { method: 'POST' });
-        const res = await fetch(`${API_URL}/auth/credentials`);
-        const json = await res.json();
-        if (json.success) setDemoUsers(json.data);
-      } catch {}
-    })();
+    let cancelled = false;
+    const fetchCredentials = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          await fetch(`${API_URL}/auth/ensure-demo`, { method: 'POST', signal: AbortSignal.timeout(15000) });
+          const res = await fetch(`${API_URL}/auth/credentials`);
+          const json = await res.json();
+          if (!cancelled && json.success && json.data?.length) {
+            setDemoUsers(json.data);
+            return;
+          }
+        } catch {
+          if (i < retries - 1) await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+      // Fallback: show hardcoded demo credentials if API unavailable
+      if (!cancelled) {
+        setDemoUsers([
+          { name: 'Raj Patel', email: 'raj.patel@demo.com', role: 'Employee', password: 'User@123' },
+          { name: 'Priya Sharma', email: 'priya.sharma@demo.com', role: 'Employee', password: 'User@123' },
+          { name: 'Amit Singh', email: 'amit.singh@demo.com', role: 'Employee', password: 'User@123' },
+          { name: 'Sneha Reddy', email: 'sneha.reddy@demo.com', role: 'Employee', password: 'User@123' },
+          { name: 'Vikram Joshi', email: 'vikram.joshi@demo.com', role: 'Employee', password: 'User@123' },
+        ]);
+      }
+    };
+    fetchCredentials();
+    return () => { cancelled = true; };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,7 +92,12 @@ const AuthPage: React.FC = () => {
         }}></div>
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '48px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '48px' }}>
+            {/* ADVIDUS Logo Image */}
+            <picture>
+              <source srcSet="/logo.svg" type="image/svg+xml" />
+              <img src="/Screenshot 2026-05-24 010501.png" alt="ADVIDUS Logo" style={{ height: '52px', width: 'auto', objectFit: 'contain', marginBottom: '4px' }} loading="lazy" />
+            </picture>
             {/* ADVIDUS Logo and Title */}
             <div style={{
               fontSize: '48px', fontWeight: 900, fontStyle: 'italic',
@@ -80,7 +105,7 @@ const AuthPage: React.FC = () => {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              letterSpacing: '-0.02em', marginBottom: '8px',
+              letterSpacing: '-0.02em',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}>
               ADVIDUS

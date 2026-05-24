@@ -83,7 +83,7 @@ export const TeamActivityFeed = React.memo<TeamActivityFeedProps>(
               fontSize: '12px',
             }}>
               <i className="ti ti-inbox" style={{ fontSize: '24px', marginBottom: '8px', display: 'block' }}></i>
-              No recent team activity
+              {loading ? 'Loading team activity...' : 'No recent team activity'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

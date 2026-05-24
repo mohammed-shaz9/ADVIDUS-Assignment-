@@ -6,10 +6,10 @@ import { AuthenticatedRequest } from '../types/index.js';
 
 const router = Router();
 
-router.use(protect, adminOnly);
+router.use(protect);
 
 // Batched endpoint for admin dashboard — reduces 6 calls to 1
-router.get('/dashboard', async (req: AuthenticatedRequest, res: Response, next) => {
+router.get('/dashboard', adminOnly, async (req: AuthenticatedRequest, res: Response, next) => {
   try {
     const [users, tasks, logs, metrics, analytics] = await Promise.all([
       adminService.getUsers(),
@@ -28,13 +28,16 @@ router.get('/dashboard', async (req: AuthenticatedRequest, res: Response, next) 
   }
 });
 
+// Read endpoints — accessible to all authenticated users (UI widgets)
 router.get('/users', adminController.getUsers);
-router.patch('/users/:id/status', adminController.toggleUserStatus);
-router.delete('/users/:id', adminController.deleteUser);
-
-router.get('/tasks', adminController.getAdminTasks);
 router.get('/logs', adminController.getActivityLogs);
-router.get('/metrics', adminController.getMetrics);
-router.get('/analytics', adminController.getAnalytics);
+
+// Mutation/admin-only endpoints
+router.patch('/users/:id/status', adminOnly, adminController.toggleUserStatus);
+router.delete('/users/:id', adminOnly, adminController.deleteUser);
+
+router.get('/tasks', adminOnly, adminController.getAdminTasks);
+router.get('/metrics', adminOnly, adminController.getMetrics);
+router.get('/analytics', adminOnly, adminController.getAnalytics);
 
 export default router;

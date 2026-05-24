@@ -38,7 +38,18 @@ export const DepartmentStats = React.memo<DepartmentStatsProps>(
       return stats;
     }, [users, currentUserDept]);
 
-    if (loading || !deptStats) return <Skeleton height="140px" count={3} />;
+    if (loading) return <Skeleton height="140px" count={3} />;
+    if (!deptStats) {
+      return (
+        <div style={{
+          background: 'rgba(34,197,94,0.08)', border: '0.5px solid rgba(34,197,94,0.2)',
+          borderRadius: '12px', padding: '16px', textAlign: 'center',
+        }}>
+          <i className="ti ti-building-community" style={{ fontSize: '24px', color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }} />
+          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>No department assigned</div>
+        </div>
+      );
+    }
 
     return (
       <ErrorBoundary>

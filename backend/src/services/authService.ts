@@ -11,6 +11,7 @@ export interface AuthResult {
   status: string;
   token: string;
   lastLogin?: Date;
+  department?: string;
 }
 
 export const registerUser = async (
@@ -36,6 +37,7 @@ export const registerUser = async (
     email: user.email,
     role: user.role,
     status: user.status,
+    department: user.department?.toString(),
     token: generateToken(user._id.toString()),
   };
 };
@@ -66,6 +68,7 @@ export const loginUser = async (
     role: user.role,
     status: user.status,
     lastLogin: user.lastLogin,
+    department: user.department?.toString(),
     token: generateToken(user._id.toString()),
   };
 };
@@ -82,6 +85,7 @@ export const getMe = async (userId: string) => {
     role: user.role,
     status: user.status,
     lastLogin: user.lastLogin,
+    department: user.department?.toString(),
   };
 };
 
@@ -118,6 +122,6 @@ export const getDemoCredentials = async () => {
     email: u.email, 
     role: 'Employee', 
     password: 'User@123',
-    department: u.department,
+    department: u.department?.toString?.() || null,
   }));
 };

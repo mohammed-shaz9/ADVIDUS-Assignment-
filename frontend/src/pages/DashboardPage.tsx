@@ -140,7 +140,7 @@ const DashboardPage: React.FC = () => {
     const interval = setInterval(() => {
       fetchUsers();
       fetchLogs();
-    }, 8000); // Less frequent than admin polling
+    }, 8000);
     return () => clearInterval(interval);
   }, [token, isAdmin, fetchUsers, fetchLogs]);
 
@@ -438,24 +438,24 @@ const DashboardPage: React.FC = () => {
                )}
 
                {/* Employee-specific widgets - Personal Dashboard */}
-               {!isAdmin && (
-                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-                   <PersonalTaskSummary 
-                     tasks={userTasks} 
-                     loading={loadingTasks}
-                   />
-                   <DepartmentStats 
-                     users={adminUsers} 
-                     currentUserDept={user?.department}
-                     loading={loadingAdmin}
-                   />
-                   <TeamActivityFeed 
-                     logs={adminLogs} 
-                     currentUserId={user?._id || ''}
-                     loading={loadingAdmin}
-                   />
-                 </div>
-               )}
+                {!isAdmin && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                    <PersonalTaskSummary 
+                      tasks={userTasks} 
+                      loading={loadingTasks}
+                    />
+                    <DepartmentStats 
+                      users={adminUsers} 
+                      currentUserDept={user?.department}
+                      loading={loadingAdmin}
+                    />
+                    <TeamActivityFeed 
+                      logs={adminLogs} 
+                      currentUserId={user?._id || ''}
+                      loading={loadingAdmin}
+                    />
+                  </div>
+                )}
 
                <KanbanBoard
                 tasks={myTasksFiltered}

@@ -90,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           role: response.data.role as User['role'],
           status: response.data.status as User['status'],
           lastLogin: response.data.lastLogin,
+          department: (response.data as any).department,
         });
         addToast(`Welcome back, ${response.data.name}!`, 'success');
         return { success: true };
@@ -116,6 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: response.data.email,
           role: response.data.role as User['role'],
           status: response.data.status as User['status'],
+          department: (response.data as any).department,
         });
         addToast('Registration successful!', 'success');
         return { success: true };
