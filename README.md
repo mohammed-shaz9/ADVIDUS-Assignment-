@@ -1,4 +1,11 @@
+<div align="center">
+
+<img src="frontend/public/Screenshot%202026-05-24%20010501.png" alt="Avidus Interactive" width="180" />
+
 # ADVIDUS Enterprise Platform
+
+**Role-based task management built for 60,000 employees and 50,000+ tasks.**
+Admins govern everything, employees work their own board, and nothing in the API ever returns an unbounded list.
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white&style=flat-square)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white&style=flat-square)
@@ -6,156 +13,110 @@
 ![Node](https://img.shields.io/badge/Node-22-5FA04E?logo=nodedotjs&logoColor=white&style=flat-square)
 ![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white&style=flat-square)
 ![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?logo=mongodb&logoColor=white&style=flat-square)
-![Mongoose](https://img.shields.io/badge/Mongoose-8-880000?logo=mongodb&logoColor=white&style=flat-square)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-4-010101?logo=socketdotio&logoColor=white&style=flat-square)
-![JWT](https://img.shields.io/badge/JWT-black?logo=jsonwebtokens&logoColor=white&style=flat-square)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white&style=flat-square)
 ![Render](https://img.shields.io/badge/Render-46E3B7?logo=render&logoColor=white&style=flat-square)
-![Chart.js](https://img.shields.io/badge/Chart.js-4-FF6384?logo=chartdotjs&logoColor=white&style=flat-square)
-![Winston](https://img.shields.io/badge/Winston-4-231F20?style=flat-square)
 
-📌 Demonstrates Enterprise RBAC Concepts and Real-Time Systems
-RBAC · Drag-and-Drop Kanban · Multi-Level Approvals · Real-Time WebSocket · N+1 Query Elimination · Audit Logging · Performance Analytics · Session Management · Departmental Access Control · Task Templates · Activity Simulation
+[Live app](https://avidus-frontend.onrender.com) · [Developer handover](docs/HANDOVER.md) · [OpenAPI spec](openapi.yml)
 
-🌐 Live App
-https://avidus-frontend.onrender.com
+</div>
 
-✨ Overview
-ADVIDUS is a production-style enterprise RBAC (Role-Based Access Control) task management platform built to demonstrate practical system design concepts in a realistic enterprise workflow.
+---
 
-The project focuses heavily on:
+## Contents
 
-- Role-based access control with granular permissions
-- Real-time collaboration via Socket.IO push notifications
-- Drag-and-drop Kanban task management
-- Multi-level approval workflows
-- Performance scoring and analytics
-- N+1 query elimination through aggregation pipelines
-- Audit logging and compliance tracking
-- Department-based organization hierarchy
-- AI agent delegation hooks
-- Activity simulation for live HR demos
+1. [Features](#features)
+2. [Architecture](#architecture)
+3. [Built for scale](#built-for-scale)
+4. [Quick start](#quick-start)
+5. [Access control (RBAC)](#access-control-rbac)
+6. [API](#api)
+7. [Realtime](#realtime)
+8. [Frontend and design system](#frontend-and-design-system)
+9. [Project structure](#project-structure)
+10. [Configuration](#configuration)
+11. [Deployment](#deployment)
+12. [Testing and quality gates](#testing-and-quality-gates)
+13. [Known limits](#known-limits)
 
-Unlike academic mini-projects, this application demonstrates how enterprise-grade RBAC and real-time systems appear inside production software.
+---
 
-🏗️ Architecture
+## Features
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Frontend (React 19 + Vite 8)            │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
-│  │ AuthPage │ │Dashboard │ │Analytics │ │ Settings / Pages  │   │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘   │
-│         │              │              │                         │
-│    ┌────┴──────────────┴──────────────┴────────────────────┐    │
-│    │              API Client (api.ts) + Cache Layer         │    │
-│    │  server-side paging · socket-driven refetch · 60s fallback│    │
-│    └────────────────────────┬──────────────────────────────┘    │
-└─────────────────────────────┼───────────────────────────────────┘
-                              │ HTTP + WebSocket
-┌─────────────────────────────┼───────────────────────────────────┐
-│                     Backend (Node 22 + Express 4)                │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
-│  │ Auth     │ │ RBAC     │ │ Routes   │ │ Socket.IO Server │   │
-│  │ JWT      │ │ Middleware│ │ REST API │ │ Real-time Events │   │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘   │
-│         │              │              │                         │
-│    ┌────┴──────────────┴──────────────┴────────────────────┐    │
-│    │                 Services Layer                          │    │
-│    │  Task · Auth · Admin · Approval · Notification · Org  │    │
-│    │  Performance · Settings · Templates · Agent           │    │
-│    └────────────────────────┬──────────────────────────────┘    │
-│                             │                                   │
-│    ┌────────────────────────┴──────────────────────────────┐    │
-│    │              Data Layer (Mongoose ODM)                 │    │
-│    │  11 Models · Aggregation Pipelines · Indexes          │    │
-│    └────────────────────────┬──────────────────────────────┘    │
-└─────────────────────────────┼───────────────────────────────────┘
-                              │
-                    ┌─────────┴─────────┐
-                    │   MongoDB 7        │
-                    │  (Replica Set)     │
-                    └───────────────────┘
-```
-
-Architecture Summary
-- **React + Vite** provides the frontend UI with lazy-loaded code splitting
-- **Express 4** exposes REST APIs with JWT authentication
-- **MongoDB 7** stores all relational and document data
-- **Socket.IO** handles real-time notifications
-- **Docker Compose** orchestrates all 3 services
-- **Render + MongoDB Atlas** for production hosting
-
-📈 Built for 60,000 employees / 50,000+ tasks
-
-Managers browse the whole organisation, so nothing in the API returns an unbounded list:
-
-- **Server-side paging + search + filters** on users, tasks and activity logs (`page`, `limit`, `q`, `status`, `role`, `action`); the UI never holds the full dataset
-- **Bounded analytics**: top-N leaderboards, grouped aggregates memoized for 5 s, `$limit` before `$lookup`
-- **Cached auth**: 5 s per-user cache, invalidated instantly on deactivate/delete
-- **Room-scoped realtime**: Socket.IO events go to admins + the affected users only (no global broadcast)
-- **Deploy-time indexes** (`npm run indexes`), pooled Mongo connections, graceful shutdown, proxy-aware rate limits
-- **Load rehearsal**: `cd backend && npm run seed:bulk -- --yes` seeds 60k users / 50k tasks and prints query timings
-
-👉 Full design notes, RBAC matrix, API changes, env vars and known limits: [`docs/HANDOVER.md`](docs/HANDOVER.md)
-
-Why this architecture?
-
-| Component | Why Used |
+| Area | What you get |
 |---|---|
-| MongoDB 7 | Flexible schemas, aggregation pipelines, indexed queries |
-| Mongoose 8 | ODM with schema validation, populate, indexes |
-| Socket.IO | Per-user real-time notification routing |
-| Express 4 | Middleware-based RBAC, rate limiting, async error handling |
-| React 19 | Component-based UI with Suspense, lazy loading |
-| Vite 8 | Fast dev server, optimized production builds |
+| **RBAC** | `admin` and `user` roles, JWT auth, permission middleware (`protect`, `adminOnly`, `checkPermission`), instant logout on deactivation |
+| **Tasks** | Drag-and-drop Kanban, assign to a person or an AI agent, comments, templates, assignee can update status |
+| **Governance** | Multi-level approval chains, immutable activity log with action filter, task monitor for admins |
+| **Organisation** | Departments tree, designations, org chart, per-department headcount |
+| **Insight** | Admin dashboard, top-N analytics, performance leaderboard, notifications bell |
+| **Realtime** | Socket.IO events scoped to admins and the users they concern |
+| **Operations** | Docker Compose, GitHub Actions CI, Render blueprint, structured Winston logs |
 
-🧩 Entity Relationship
+## Architecture
 
-Main MongoDB Collections
+```mermaid
+flowchart LR
+  subgraph Browser["Browser · React 19 + Vite"]
+    UI["Pages and components"]
+    Hooks["usePagedList · useSocketRefetch · useVisibleInterval"]
+    UI --> Hooks
+  end
+  subgraph API["API · Node 22 + Express 4"]
+    MW["Rate limit → JWT protect → RBAC"]
+    SVC["Services · paginate · memo · userCache"]
+    RT["Socket.IO rooms: admins, user:id"]
+    MW --> SVC
+  end
+  DB[("MongoDB 7")]
+  Hooks -- "REST (paged)" --> MW
+  Hooks <-- "events" --> RT
+  SVC --> DB
+  SVC --> RT
+```
 
-| Collection | Key Fields | Relationships |
-|---|---|---|
-| `users` | `_id`, `name`, `email`, `role`, `status`, `department`, `lastLogin` | References in tasks, logs, approvals |
-| `tasks` | `_id`, `title`, `status`, `owner`, `assignedTo`, `dueDate` | `owner` → users, `assignedTo` → users/agents |
-| `activitylogs` | `_id`, `userId`, `action`, `details`, `createdAt` | `userId` → users |
-| `approvals` | `_id`, `task`, `approver`, `level`, `status`, `comment` | `task` → tasks, `approver` → users |
-| `agents` | `_id`, `name`, `role`, `status`, `modelName` | `creator` → users |
-| `notifications` | `_id`, `userId`, `type`, `title`, `message`, `read` | `userId` → users |
-| `performancemetrics` | `_id`, `user`, `score`, `period`, `snapshotDate` | `user` → users |
-| `tasktemplates` | `_id`, `name`, `checklistSteps`, `isRecurring` | `createdBy` → users |
-| `departments` | `_id`, `name`, `parentId`, `head` | `parentId` → departments |
-| `settings` | `_id`, `key`, `value`, `group` | Self-contained |
+Controllers stay thin, business rules live in `services/`, every list goes through one pagination helper, and every realtime event is emitted to rooms, never broadcast.
 
-Relationships Demonstrated
-- One-to-many (user → tasks, user → logs)
-- Many-to-many (tasks ↔ approvals, users ↔ departments)
-- Parent-child hierarchy (departments)
-- Indexed text search (tasks title + description)
-- Compound indexes (user status + role, activity action + createdAt)
+## Built for scale
 
-⚡ Quick Start
+Managers browse the whole organisation, so the system is designed around bounded work per request:
+
+- **Server-side paging, search and filters** on users, tasks and logs (`page`, `limit`, `q`, `status`, `role`, `action`). The UI never holds the full dataset.
+- **Bounded analytics:** top-N owners, grouped aggregates memoized for 5 s, `$limit` before `$lookup`.
+- **Cached auth:** one DB read per user per 5 s, invalidated instantly when an account is deactivated or deleted.
+- **Room-scoped realtime:** a task update reaches its owner, assignee and admins, not 60,000 sockets.
+- **Safe search:** query values are type-checked and regex-escaped; employees can only search names.
+- **Deploy-time indexes:** `autoIndex` is off in production, `npm run indexes` builds what is missing.
+- **Visibility-aware refresh:** socket events trigger a coalesced refetch; a 60 s fallback pauses on hidden tabs.
+
+Rehearse it on your own database (never production):
 
 ```bash
-# Option A: Docker (recommended)
-docker compose up --build -d
-docker compose exec backend npm run seed
-
-# Option B: Manual Development
-# Terminal 1 — Backend:
 cd backend
-cp .env.example .env
-npm install
-npm run seed
-npm run dev
-
-# Terminal 2 — Frontend:
-cd frontend
-npm install
-npm run dev
+npm run seed:bulk -- --yes        # 60,000 users + 50,000 tasks, then prints hot-query timings
 ```
 
-🌐 Services (Local Docker)
+Design rules, trade-offs and limits are written up in [docs/HANDOVER.md](docs/HANDOVER.md).
+
+## Quick start
+
+**Docker**
+
+```bash
+docker compose up --build -d
+docker compose exec backend npm run seed
+```
+
+**Local**
+
+```bash
+# Terminal 1 · API on :5050
+cd backend && cp .env.example .env     # set MONGO_URI and JWT_SECRET
+npm install && npm run seed && npm run dev
+
+# Terminal 2 · UI on :5180
+cd frontend && npm install && npm run dev
+```
 
 | Service | URL |
 |---|---|
@@ -163,271 +124,191 @@ npm run dev
 | Backend API | http://localhost:5050/api |
 | MongoDB | localhost:27017 |
 
-🔑 Demo Credentials
+**Demo accounts** (created by `npm run seed`)
 
-| Role | Name | Email | Password |
-|---|---|---|---|
-| Admin | Admin User | admin@example.com | Admin@123 |
-| Employee | Alice Johnson | alice@demo.com | User@123 |
-| Employee | Bob Williams | bob@demo.com | User@123 |
-| Employee | Charlie Brown | charlie@demo.com | User@123 |
-| Employee | Diana Prince | diana@demo.com | User@123 |
-| Employee | Eve Martinez | eve@demo.com | User@123 |
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@example.com` | `Admin@123` |
+| Employee | 100 seeded employees; the login page lists a few | `User@123` |
 
-Plus 100 seeded employees across departments — all use password `User@123`.
+Bulk-seeded accounts (`seed:bulk`) are `u<N>@seed.local` with password `Seed@12345`.
 
-🧠 Enterprise Concepts Demonstrated
+## Access control (RBAC)
 
-RBAC (Role-Based Access Control)
-- Two roles: `admin` and `user`
-- JWT authentication with token verification and expiry
-- Middleware-level permission enforcement (`protect`, `adminOnly`, `checkPermission`)
-- Role-based UI rendering (admin gets full control panel, employee gets personal workspace)
-- Session guard: 60-second visibility-aware check plus instant logout on the `user.status_changed` socket event
-- Account deactivation detection and auto-logout (server-side effect within 5 s, see `docs/HANDOVER.md`)
+| Capability | Admin | Employee |
+|---|:---:|:---:|
+| Own and assigned tasks: list, create, edit | yes | yes |
+| Task assigned by someone else | yes | **status only** |
+| Delete task | yes | no (`tasks:delete` is admin-only) |
+| User directory | full rows, filters, search by name or email | active users, name and designation only |
+| Activity log | all entries | own entries |
+| Admin tasks, metrics, analytics, dashboard | yes | no |
+| Activate, deactivate, delete users | yes (not yourself) | no |
+| Performance of another user | any | own only |
+| AI agents | read and write | read (active only) |
 
-Real-Time Collaboration
-- Socket.IO with per-user notification routing (`emitToUser`)
-- Socket events trigger a coalesced refetch (one request per 1.5 s burst); a 60-second fallback refresh pauses while the tab is hidden
-- Events are room-scoped: `admins` + the affected `user:<id>` rooms only, never a global broadcast
-- WebSocket events: `task.created`, `task.updated`, `task.deleted`, `user.status_changed`, `activity.created`
-- Notification bell with unread count and dropdown
-- Activity simulation (random status flips) is demo-only: off unless `ENABLE_SIMULATION=true`, admin-only, never enable on real data
+Middleware chain: `protect` (verify JWT, load `{role,status}`) → `adminOnly` or `checkPermission('scope:action')`. The permission map lives in `backend/src/utils/permissions.ts`.
 
-ACID Transactions (MongoDB)
-- Task creation and assignment in atomic operations
-- Approval chain decisions update both approval and task status atomically
-- Activity logging paired with mutations via `logActivity()`
-- Aggregation pipelines with `$facet` for consistent analytics
+## API
 
-N+1 Query Elimination
-- Analytics: reduced from 2N+8 DB calls to 3 aggregation pipelines
-- Metrics: replaced 7 `countDocuments` calls with 2 aggregations using `$facet`/`$group`
-- Dashboard: batched endpoint (`GET /api/admin/dashboard`) combines 5 service calls into 1
-- Performance: user metrics fetched via single `$group` + `$first` pipeline instead of N+1 loop
+Envelope: `{ "success": true, ...fields, "serverTime": "…" }`. Paged lists return `{ items, page, limit, total, totalPages }`.
 
-Performance Optimization
-- **Frontend**: localStorage cache with version invalidation — instant data on page load
-- **Code splitting**: `React.lazy()` for tab pages — 520 KB → 313 KB initial bundle (40% smaller)
-- **Optimistic updates**: Approve/Reject reflects immediately in UI before API responds
-- **Background refresh**: stale-while-revalidate pattern — shows cached data, refreshes silently
-- **Error resilience**: `Array.isArray` guards on all `.filter()` / `.slice()` calls — never crashes on bad data
+<details open>
+<summary><b>Auth</b></summary>
 
-Indexing Strategy (built by `npm run indexes` on deploy; `autoIndex` is off in production)
-- `User`: `role + name` (admin list), `status + name` (directory), `department + status` (headcount), unique `email`
-- `Agent`: index on `status`
-- `ActivityLog`: `createdAt`, `action + createdAt`, `userId + createdAt`
-- `Task`: `owner + status + createdAt`, `status + createdAt`, `assignedTo.user + createdAt`, `assignedTo.agent + status`, `$text` on `title + description`
-- `Approval`: `approver + status`, unique `task + level`
-- `PerformanceMetric`: `user + snapshotDate` (latest snapshot per user)
-
-📊 Frontend Architecture
-
-```
-frontend/src/
-├── components/
-│   ├── common/          # ErrorBoundary, ErrorState, LoadingSpinner, Pager, Skeleton, ToastContainer
-│   ├── dashboard/       # StatsGrid, WeeklyChart, ActivityFeed, Widgets
-│   ├── layout/          # Sidebar, Topbar, AppLayout, NotificationBell
-│   ├── tasks/           # KanbanBoard, KanbanColumn, TaskFormModal, TaskMonitorTable
-│   └── users/           # UserTable
-├── pages/               # Lazy-loaded: Dashboard, Analytics, Performance, Settings, etc.
-├── contexts/            # AuthContext (JWT, user state, toast notifications)
-├── hooks/               # useAdmin, useTasks, usePagedList (server paging + abort), useSocketRefetch,
-│                        #   useVisibleInterval (pauses on hidden tab), useDebouncedValue
-├── services/            # api.ts (all HTTP client functions)
-├── types/               # TypeScript interfaces (User, Task, Approval, etc.)
-└── utils/               # cache.ts (localStorage), socket.ts
-```
-
-🔐 RBAC Implementation Detail
-
-Database-Level
-- `users.role` field: `'admin' | 'user'`
-- `users.status` field: `'active' | 'inactive'`
-- Permissions enforced via middleware chain
-
-Middleware Chain
-1. `protect` — verify JWT, attach user to request
-2. `adminOnly` — restrict route to admin role
-3. `checkPermission('scope:action')` — granular permission check
-
-UI Enforcement
-- Sidebar items filter by role (admin-only items hidden from employees)
-- Admin gets full control panel with all tabs
-- Employees see personal workspace with Kanban, analytics, performance, settings
-- Department-based data scoping for employee widgets
-
-🔌 API Surface
-
-**Authentication**
 | Method | Endpoint | Access |
 |---|---|---|
-| POST | `/api/auth/login` | Public |
 | POST | `/api/auth/register` | Public |
+| POST | `/api/auth/login` | Public (only failed attempts count toward the limit) |
 | GET | `/api/auth/me` | Authenticated |
-| POST | `/api/auth/ensure-demo` | Public (disabled when `DEMO_MODE=false`) |
-| GET | `/api/auth/credentials` | Public (disabled when `DEMO_MODE=false`) |
+| POST | `/api/auth/ensure-demo`, GET `/api/auth/credentials` | Public, disabled when `DEMO_MODE=false` |
+</details>
 
-**Tasks**
+<details open>
+<summary><b>Tasks</b></summary>
+
 | Method | Endpoint | Access |
 |---|---|---|
-| GET | `/api/tasks?limit&status&page` | Authenticated (tasks I own or am assigned) |
+| GET | `/api/tasks?limit&status&page` | Tasks I own or am assigned (array, default 200, max 500) |
 | POST | `/api/tasks` | Authenticated |
-| GET | `/api/tasks/summary` | Authenticated |
-| PUT | `/api/tasks/:id` | Owner / admin (assignee: status only) |
-| DELETE | `/api/tasks/:id` | Admin (`tasks:delete`) |
+| GET | `/api/tasks/summary` | Status counts for my tasks |
+| PUT | `/api/tasks/:id` | Owner or admin; assignee: status only |
+| DELETE | `/api/tasks/:id` | Admin |
+| GET / POST / DELETE | `/api/tasks/:taskId/comments` | Authenticated |
 | POST | `/api/tasks/simulate` | Admin, only when `ENABLE_SIMULATION=true` |
+</details>
 
-**Admin**
+<details open>
+<summary><b>Admin</b></summary>
+
 | Method | Endpoint | Access |
 |---|---|---|
-| GET | `/api/admin/dashboard` | Admin (batched — 5 calls in 1, first page of each list) |
-| GET | `/api/admin/users?page&limit&q&role&status` | Admin: full rows. Employee: active users, name/designation only |
-| GET | `/api/admin/logs?page&limit&action` | Admin: all. Employee: own entries only |
-| GET | `/api/admin/tasks?page&limit&status&q` | Admin |
+| GET | `/api/admin/dashboard` | Admin, first page of each list in one call |
+| GET | `/api/admin/users?page&limit&q&role&status` | Admin: full rows. Employee: names only |
 | PATCH | `/api/admin/users/:id/status` | Admin |
-| DELETE | `/api/admin/users/:id` | Admin |
-
-**Approvals**
-| Method | Endpoint | Access |
-|---|---|---|
-| GET | `/api/approvals/my` | Authenticated |
-| POST | `/api/approvals/task/:taskId/decide` | Authenticated |
-
-**Analytics**
-| Method | Endpoint | Access |
-|---|---|---|
-| GET | `/api/analytics` | Authenticated (public stats) |
-| GET | `/api/admin/analytics?top=20` | Admin (top-N owners) |
+| DELETE | `/api/admin/users/:id` | Admin, also removes their tasks |
+| GET | `/api/admin/logs?page&limit&action` | Admin: all. Employee: own |
+| GET | `/api/admin/tasks?page&limit&status&q` | Admin |
 | GET | `/api/admin/metrics` | Admin |
+| GET | `/api/admin/analytics?top=20` | Admin, top-N owners (max 100) |
+| GET | `/api/analytics` | Authenticated, public task counts |
+</details>
 
-**Organization**
+<details>
+<summary><b>Organisation, performance, approvals, agents, notifications, templates, settings</b></summary>
+
 | Method | Endpoint | Access |
 |---|---|---|
-| GET | `/api/org/departments` | Authenticated |
-| GET | `/api/org/designations` | Authenticated |
-| GET | `/api/org/chart` | Authenticated (500-user sample + per-department counts) |
-| GET | `/api/org/my-department` | Authenticated (headcount of my own department) |
-
-**Performance**
-| Method | Endpoint | Access |
-|---|---|---|
+| GET | `/api/org/departments`, `/departments/tree`, `/designations` | Authenticated |
+| GET | `/api/org/chart` | Authenticated, 500-user sample + per-department counts |
+| GET | `/api/org/my-department` | Authenticated, headcount of my own department |
+| POST / PUT / DELETE | `/api/org/departments`, `/api/org/designations` | Admin |
 | GET | `/api/performance/me` | Authenticated |
-| GET | `/api/performance/all?limit=50` | Admin (top-N leaderboard) |
+| GET | `/api/performance/user/:userId` | Admin, or own id |
+| GET | `/api/performance/all?limit=50` | Admin, leaderboard (max 200) |
 | POST | `/api/performance/snapshot` | Admin |
+| GET | `/api/approvals/my`, `/api/approvals/task/:taskId` | Authenticated |
+| POST | `/api/approvals/task/:taskId` | Create chain (`tasks:write`) |
+| POST | `/api/approvals/:approvalId/decide` | The assigned approver |
+| GET / POST | `/api/agents` | Read: all. Write: admin |
+| PATCH / DELETE | `/api/agents/:id` | Admin |
+| GET | `/api/notifications`, `/unread-count` | Authenticated |
+| PATCH / POST | `/api/notifications/:id/read`, `/read-all` | Authenticated |
+| GET / POST / PUT / DELETE | `/api/templates` | Read: authenticated. Write: `tasks:write`, delete: admin |
+| GET | `/api/settings`, `/api/settings/integrations` | Authenticated |
+| PUT | `/api/settings/:key` | Admin |
+</details>
 
-**Notifications, Templates, Settings**
-| Method | Endpoint | Access |
-|---|---|---|
-| GET | `/api/notifications` | Authenticated |
-| GET | `/api/templates` | Admin |
-| GET | `/api/settings` | Admin |
-| GET | `/api/settings/integrations` | Admin |
+## Realtime
 
-Full spec available in `openapi.yml`
+Socket.IO at `/ws`, authenticated with the JWT. Each socket joins `user:<id>`; admins also join `admins`.
+`emitEvent(event, payload, userIds[])` sends to `admins` plus those user rooms only.
 
-📦 Project Structure
+Events: `task.created`, `task.updated`, `task.deleted`, `activity.created`, `user.status_changed`, `approval.created`, `approval.decided`, `comment.created`, `notification.new`, `notification.updated`, `agent.*` (admins only).
+The client coalesces bursts into one refetch per 1.5 s, and logs out immediately on `user.status_changed` for its own account.
+
+## Frontend and design system
+
+React 19 · TypeScript · Vite 8 · Chart.js · lazy-loaded pages. State lives in hooks, not a global store.
+
+**Data hooks:** `usePagedList` (server paging with abort and stale-response protection) · `useDebouncedValue` · `useSocketRefetch` · `useVisibleInterval` · `useLatestSignal`.
+
+**CSS** is one documented file, [`frontend/src/index.css`](frontend/src/index.css), dark-first:
+
+| Section | Contents |
+|---|---|
+| 1 Tokens | colour scale and semantic roles (WCAG AA checked), 4 px spacing, radii, shadows, z-index, type scale, motion |
+| 2 Reset | box model, body, scrollbars |
+| 3 Layout | glass shell, sidebar, topbar, content area, page grid |
+| 4 Components | buttons, inputs, toolbar, cards, stats, tables, badges, modals and toasts, nav, Kanban, activity, skeleton, bell, charts, pager, auth page |
+| 5 Utilities | small helpers |
+| 6 Responsive | 640 / 900 / 1200 px; icon-rail sidebar under 900 px, bottom tab bar under 640 px |
+| 7 Accessibility | focus rings, reduced motion |
+
+Rules for contributors: use tokens instead of raw colours; add component styles only in section 4; transition named properties (never `all`); `backdrop-filter` only on the shell and overlays; no shadows on list rows.
+
+## Project structure
 
 ```
-avidus-rbac/
-├── backend/src/
-│   ├── config/           # DB connection, env vars, Winston logger
-│   ├── controllers/      # Thin request/response handlers
-│   ├── services/         # Business logic (11 modules)
-│   ├── middleware/        # Auth (JWT), validation, error handler, rate limiter
-│   ├── models/           # Mongoose schemas (11 collections)
-│   ├── routes/           # API route definitions
-│   ├── errors/           # Custom error classes (NotFound, Forbidden, etc.)
-│   ├── utils/            # Socket.IO helpers, activity logger
-│   ├── seed.ts           # 4-phase data seeding (100+ employees, 450+ tasks)
-│   ├── server.ts         # Entry point with Socket.IO setup
-│   └── types/            # TypeScript type definitions
+.
+├── backend/
+│   ├── src/
+│   │   ├── config/        env (typed), db (pool, autoIndex), logger
+│   │   ├── controllers/   thin request handlers
+│   │   ├── services/      business logic
+│   │   ├── middleware/    auth, validator, rate limiter, error handler
+│   │   ├── models/        12 Mongoose schemas and their indexes
+│   │   ├── routes/        route tables
+│   │   ├── utils/         paginate, memo, userCache, realtime, permissions
+│   │   ├── seed.ts        demo data      seedBulk.ts  60k load data      syncIndexes.ts  deploy indexes
+│   │   └── server.ts      app, Socket.IO rooms, graceful shutdown
+│   └── tests/             mock-based Vitest suites
 ├── frontend/src/
-│   ├── components/       # UI components (layout, widgets, forms)
-│   ├── pages/            # Page components (lazy-loaded)
-│   ├── contexts/         # React context providers
-│   ├── hooks/            # Custom hooks with cache integration
-│   ├── services/         # API client
-│   ├── utils/            # Cache utility, socket helpers
-│   └── types/            # Shared interfaces
-├── docker-compose.yml    # 3-service orchestration
-├── render.yaml           # Render deployment config
-└── openapi.yml           # API specification
+│   ├── components/        activity · agents · common · dashboard · layout · tasks · users
+│   ├── pages/             Auth, Dashboard, Analytics, Approvals, Organization, Performance, Settings, Templates, Integrations
+│   ├── hooks/             data and realtime hooks
+│   ├── contexts/          AuthContext (JWT, shared socket, session guard)
+│   ├── services/api.ts    typed HTTP client
+│   └── index.css          design system
+├── docs/HANDOVER.md       knowledge transfer
+├── docker-compose.yml  ·  render.yaml  ·  openapi.yml  ·  .github/workflows/ci.yml
 ```
 
-🐳 Dockerized Deployment
+## Configuration
 
-All services are containerized using Docker Compose.
+Copy `backend/.env.example` to `backend/.env`.
 
-Benefits:
-- One-command setup (`docker compose up --build`)
-- Consistent environments across machines
-- Service isolation with health checks
-- Persistent MongoDB data volume
+| Variable | Default | Purpose |
+|---|---|---|
+| `MONGO_URI`, `JWT_SECRET` | required | database and token signing |
+| `PORT`, `NODE_ENV`, `CORS_ORIGIN`, `JWT_EXPIRES_IN`, `LOG_LEVEL` | see example | basics |
+| `TRUST_PROXY` | `0` | proxy hops in front of the API (`1` on Render or Nginx) |
+| `API_RATE_MAX`, `AUTH_RATE_MAX` | `2000`, `50` | per-IP caps per 15 min |
+| `DEMO_MODE` | `true` | `false` disables the public demo-credential endpoints |
+| `AUTO_SEED` | `true` | `false` stops the small demo seed on an empty database |
+| `ENABLE_SIMULATION` | `false` | demo-only random status flipper, never on real data |
 
-Deployment (Production)
+Frontend: `VITE_API_URL` (defaults to `http://localhost:5050/api`).
 
-Render (free tier) + MongoDB Atlas (free cluster):
-- Backend spins down after 15 min idle: first visit ~30s cold start
-- Auto-deploys from `main` branch on push
-- Environment variables configured via Render dashboard
+## Deployment
 
-📈 Monitoring & Observability
+`render.yaml` defines the API (`backend/`) and the static site (`frontend/`). The API start command builds missing indexes first, and the health check is `GET /`.
+Before a real rollout set `DEMO_MODE=false`, `AUTO_SEED=false`, a strong `JWT_SECRET` and `TRUST_PROXY=1`.
 
-The backend includes structured logging with Winston:
-- Log levels: `debug`, `info`, `warn`, `error`
-- HTTP request logging via Morgan
-- Global error handlers with stack trace capture
-- Unhandled rejection and uncaught exception handlers
-- MongoDB connection event logging
+## Testing and quality gates
 
-Frontend includes:
-- Global `window.onerror` and `unhandledrejection` listeners
-- ErrorBoundary component around every widget
-- Toast notification system for user feedback
-- Console-error logging for debugging
+```bash
+cd backend  && npm run typecheck && npm test && npm run build    # 155 mock-based tests, no database needed
+cd frontend && npm run typecheck && npm run lint && npm run build
+```
 
-🎯 Demo Highlights
+CI (`.github/workflows/ci.yml`) runs the same gates on every push and pull request.
 
-During project demonstration:
+## Known limits
 
-1. **Login as Admin** — see full control panel with all 11 modules
-2. **Login as Employee** — see personal workspace with Kanban board
-3. **Dashboard** — numbers update live over WebSocket as tasks change
-4. **Kanban** — drag-and-drop tasks between columns
-5. **Approvals** — create and decide multi-level approval chains
-6. **Analytics** — real-time doughnut and bar charts
-7. **Performance** — employee scoring with refresh snapshot
-8. **Template Manager** — create task templates with checklist steps
-9. **Audit Logs** — immutable activity stream with filters
-10. **Scale** — `cd backend && npm run seed:bulk -- --yes`, then page through 60,000 users and search by name or email prefix
+- Backend tests are mock-based; run `seed:bulk` against a real MongoDB to measure query timings.
+- Login hashing uses pure-JS `bcryptjs`, the first thing to saturate when thousands sign in at once.
+- Several API instances need the Socket.IO Redis adapter; the 5 s caches are per process.
+- Render's free tier suits a demo, not 60,000 live sockets.
 
-🧪 Testing
-
-- 153 Vitest tests in 9 files (auth middleware + cache, admin service, pagination/regex-escaping, memo, performance scoring, email-regex ReDoS guard, task RBAC, rate limiter)
-- Mock-based: no database needed (`cd backend && npm test`). Real-database load check: `npm run seed:bulk -- --yes`
-- TypeScript strict mode enabled across the codebase
-
-🏁 Conclusion
-
-ADVIDUS demonstrates how enterprise RBAC concepts and real-time systems integrate into production software instead of isolated academic examples.
-
-The project combines:
-- Role-based access control with JWT authentication
-- Real-time collaboration with WebSocket push
-- Drag-and-drop Kanban task management
-- Multi-level approval workflows
-- N+1 query elimination via aggregation pipelines
-- Optimized frontend with code splitting, server-side paging and socket-driven refresh
-- Load rehearsal tooling for a 60,000-employee dataset
-
-making it ideal for:
-- Enterprise architecture demonstrations
-- RBAC system design presentations
-- Full-stack portfolio showcases
-- Technical viva and interview discussions
-
----
-
-⭐ Built with React 19, Node 22, Express 4, MongoDB 7, Docker, and TypeScript.
+Full list with mitigations: [docs/HANDOVER.md](docs/HANDOVER.md#8-known-ceilings-be-honest-with-stakeholders).

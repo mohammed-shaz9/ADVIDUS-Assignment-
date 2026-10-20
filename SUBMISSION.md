@@ -1,5 +1,9 @@
 # Avidus Interactive — Senior Engineering Submission
 
+> **Historical document.** It describes the original assessment build. Current behaviour (server-side paging,
+> role-scoped user/log endpoints, room-scoped realtime, 60k-employee scale work) is documented in
+> [README.md](README.md) and [docs/HANDOVER.md](docs/HANDOVER.md). Where they differ, those two are correct.
+
 ## What Was Built
 
 A full-stack **Enterprise RBAC Task Management System** with **7 production-grade modules**, deployed via Docker Compose, seeded with **100+ realistic employees** and **450+ tasks** across a complete lifecycle.
