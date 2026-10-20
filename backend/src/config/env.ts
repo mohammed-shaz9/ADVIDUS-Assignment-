@@ -10,6 +10,7 @@ interface EnvConfig {
   jwtExpiresIn: string;
   corsOrigin: string;
   logLevel: string;
+  trustProxy: number; // reverse-proxy hops in front of the app (Render/Nginx = 1); 0 = direct
 }
 
 function validateEnv(): EnvConfig {
@@ -31,6 +32,7 @@ function validateEnv(): EnvConfig {
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '30d',
     corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5180',
     logLevel: process.env.LOG_LEVEL || 'debug',
+    trustProxy: parseInt(process.env.TRUST_PROXY || '0', 10) || 0,
   };
 }
 

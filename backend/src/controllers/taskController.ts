@@ -14,7 +14,7 @@ export const createTask = async (req: AuthenticatedRequest, res: Response, next:
 
 export const getTasks = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const tasks = await taskService.getTasks(req.user!._id.toString());
+    const tasks = await taskService.getTasks(req.user!._id.toString(), req.query as Record<string, string>);
     res.json({ success: true, data: tasks, serverTime: new Date().toISOString() });
   } catch (error) {
     next(error);

@@ -29,5 +29,6 @@ const PerformanceMetricSchema = new Schema<IPerformanceMetric>(
 );
 
 PerformanceMetricSchema.index({ user: 1, period: 1, snapshotDate: -1 });
+PerformanceMetricSchema.index({ user: 1, snapshotDate: -1 }); // latest-snapshot-per-user leaderboard
 
 export default mongoose.model<IPerformanceMetric>('PerformanceMetric', PerformanceMetricSchema);

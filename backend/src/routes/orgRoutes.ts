@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import * as orgController from '../controllers/orgController.js';
+import * as orgService from '../services/orgService.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { AuthenticatedRequest } from '../types/index.js';
 
 const router = Router();
 router.use(protect);
@@ -17,5 +20,9 @@ router.put('/designations/:id', adminOnly, orgController.updateDesignation);
 router.delete('/designations/:id', adminOnly, orgController.deleteDesignation);
 
 router.get('/chart', orgController.getOrgChart);
+router.get('/my-department', asyncHandler(async (req, res) => {
+  const data = await orgService.getMyDepartmentStats((req as AuthenticatedRequest).user!._id.toString());
+  res.json({ success: true, data, serverTime: new Date().toISOString() });
+}));
 
 export default router;

@@ -10,7 +10,7 @@ export const logActivity = async (
 ): Promise<void> => {
   try {
     const log = await ActivityLog.create({ userId, action, details });
-    emitEvent('activity.created', { logId: log._id.toString(), action });
+    emitEvent('activity.created', { logId: log._id.toString(), action }, [userId]);
   } catch (error) {
     logger.error('Failed to create activity log', { error, userId, action });
   }

@@ -12,7 +12,7 @@ router.use(protect);
 router.get('/dashboard', adminOnly, async (req: AuthenticatedRequest, res: Response, next) => {
   try {
     const [users, tasks, logs, metrics, analytics] = await Promise.all([
-      adminService.getUsers(),
+      adminService.getUsers({ limit: '10' }), // first page only, never the full user table
       adminService.getAdminTasks(req.query as Record<string, string>),
       adminService.getActivityLogs(req.query as Record<string, string>),
       adminService.getMetrics(),

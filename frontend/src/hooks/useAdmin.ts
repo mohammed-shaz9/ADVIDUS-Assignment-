@@ -1,42 +1,54 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { adminApi, agentsApi, tasksApi } from '../services/api';
-import { User, Task, ActivityLog, Agent, Analytics, Metrics } from '../types';
+import { User, ActivityLog, Agent, Analytics, Metrics } from '../types';
 import { cache } from '../utils/cache';
+import { useLatestSignal } from './useLatestSignal';
+
+// Dashboard slices only (first pages). Full user / task / log lists are paged server-side
+// inside UserTable, TaskMonitorTable and ActivityLogTable.
+const PREVIEW_LIMIT = 10;
 
 export const useAdmin = () => {
   const { token, user, addToast } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
-  // Hydrate from cache immediately, before any API call
-  const [users, setUsers] = useState<User[]>(cache.getArray<User>('adminUsers'));
-  const [tasks, setTasks] = useState<Task[]>(cache.getArray<Task>('adminTasks'));
-  const [logs, setLogs] = useState<ActivityLog[]>(cache.getArray<ActivityLog>('adminLogs'));
-  const [agents, setAgents] = useState<Agent[]>(cache.getArray<Agent>('adminAgents'));
-  const [analytics, setAnalytics] = useState<Analytics | null>(cache.get<Analytics>('adminAnalytics'));
+  const [users, setUsers] = useState<User[]>([]);
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(cache.get<Metrics>('adminMetrics'));
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [refreshingAnalytics, setRefreshingAnalytics] = useState(false);
 
+  const dashSignal = useLatestSignal();
+  const analyticsSignal = useLatestSignal();
+  const metricsSignal = useLatestSignal();
+  const usersSignal = useLatestSignal();
+  const logsSignal = useLatestSignal();
+
   const fetchAnalytics = useCallback(async () => {
-    if (!token || user?.role !== 'admin') return;
+    if (!token || !isAdmin) return;
+    const signal = analyticsSignal();
     setRefreshingAnalytics(true);
     try {
-      const response = await adminApi.getAnalytics();
-      if (response.success && response.data) {
-        setAnalytics(response.data);
-        cache.set('adminAnalytics', response.data);
-      }
-    } catch (err) {
-      addToast('Error loading analytics', 'error');
+      const response = await adminApi.getAnalytics(20, signal);
+      if (signal.aborted) return;
+      if (response.success && response.data) setAnalytics(response.data);
+    } catch {
+      if (!signal.aborted) addToast('Error loading analytics', 'error');
     } finally {
-      setRefreshingAnalytics(false);
+      if (!signal.aborted) setRefreshingAnalytics(false);
     }
-  }, [token, user, addToast]);
+  }, [token, isAdmin, addToast, analyticsSignal]);
 
   const fetchMetrics = useCallback(async () => {
-    if (!token || user?.role !== 'admin') return;
+    if (!token || !isAdmin) return;
+    const signal = metricsSignal();
     try {
-      const response = await adminApi.getMetrics();
+      const response = await adminApi.getMetrics(signal);
+      if (signal.aborted) return;
       if (response.success && response.data) {
         setMetrics(response.data);
         cache.set('adminMetrics', response.data);
@@ -44,83 +56,63 @@ export const useAdmin = () => {
     } catch {
       // silent
     }
-  }, [token, user]);
+  }, [token, isAdmin, metricsSignal]);
 
   const fetchUsers = useCallback(async () => {
-    if (!token) return;
+    if (!token || !isAdmin) return;
+    const signal = usersSignal();
     try {
-      const response = await adminApi.getUsers();
-      if (response.success && response.data) {
-        setUsers(response.data);
-        cache.set('adminUsers', response.data);
-      }
+      const response = await adminApi.getUsers({ page: 1, limit: PREVIEW_LIMIT }, signal);
+      if (!signal.aborted && response.success) setUsers(response.items);
     } catch {
       // silent
     }
-  }, [token]);
+  }, [token, isAdmin, usersSignal]);
 
-  const fetchTasks = useCallback(async (params?: Record<string, string>) => {
-    if (!token || user?.role !== 'admin') return;
-    try {
-      const response = await adminApi.getTasks(params);
-      if (response.success && response.items) {
-        setTasks(response.items as unknown as Task[]);
-        cache.set('adminTasks', response.items as unknown as Task[]);
-      }
-    } catch {
-      // silent
-    }
-  }, [token, user]);
-
-  const fetchLogs = useCallback(async (params?: Record<string, string>) => {
+  // Non-admins are allowed: the server scopes the result to their own entries.
+  const fetchLogs = useCallback(async () => {
     if (!token) return;
+    const signal = logsSignal();
     try {
-      const response = await adminApi.getLogs(params);
-      if (response.success && response.items) {
-        setLogs(response.items as unknown as ActivityLog[]);
-        cache.set('adminLogs', response.items as unknown as ActivityLog[]);
-      }
+      const response = await adminApi.getLogs({ page: 1, limit: PREVIEW_LIMIT }, signal);
+      if (!signal.aborted && response.success) setLogs(response.items);
     } catch {
       // silent
     }
-  }, [token]);
+  }, [token, logsSignal]);
 
   const fetchAgents = useCallback(async () => {
-    if (!token || user?.role !== 'admin') return;
+    if (!token || !isAdmin) return;
     try {
       const response = await agentsApi.getAll();
-      if (response.success && response.data) {
-        setAgents(response.data);
-        cache.set('adminAgents', response.data);
-      }
+      if (response.success && response.data) setAgents(response.data);
     } catch {
       // silent
     }
-  }, [token, user]);
+  }, [token, isAdmin]);
 
   const fetchAllAdminData = useCallback(async () => {
-    if (!token || user?.role !== 'admin') return;
+    if (!token || !isAdmin) return;
+    const signal = dashSignal();
     setLoading(true);
     try {
-      // Use batched endpoint to reduce 6 calls to 1
-      const response = await adminApi.getDashboard();
+      const response = await adminApi.getDashboard(signal);
+      if (signal.aborted) return;
       if (response.success && response.data) {
-        const { users: u, tasks: t, logs: l, metrics: m, analytics: a } = response.data;
-        // Backend returns paginated responses for tasks/logs: { items: [...], page, limit, ... }
-        const taskArr = Array.isArray(t) ? t : (t?.items || []);
-        const logArr = Array.isArray(l) ? l : (l?.items || []);
-        setUsers(u || []); cache.set('adminUsers', u || []);
-        setTasks(taskArr); cache.set('adminTasks', taskArr);
-        setLogs(logArr); cache.set('adminLogs', logArr);
-        setMetrics(m || null); cache.set('adminMetrics', m);
-        setAnalytics(a || null); cache.set('adminAnalytics', a);
+        const { users: u, logs: l, metrics: m, analytics: a } = response.data;
+        setUsers(u?.items ?? []);
+        setLogs(l?.items ?? []);
+        setMetrics(m || null);
+        if (m) cache.set('adminMetrics', m);
+        setAnalytics(a || null);
+        setError(null);
       }
-    } catch {
-      // silent
+    } catch (err) {
+      if (!signal.aborted) setError(err instanceof Error ? err.message : 'Failed to load dashboard');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
-  }, [token, user]);
+  }, [token, isAdmin, dashSignal]);
 
   const toggleUserStatus = useCallback(async (targetUserId: string) => {
     if (!token) return false;
@@ -132,7 +124,7 @@ export const useAdmin = () => {
       const response = await adminApi.toggleUserStatus(targetUserId);
       if (response.success) {
         addToast('User status updated', 'success');
-        await Promise.all([fetchUsers(), fetchAnalytics(), fetchLogs()]);
+        await Promise.all([fetchUsers(), fetchMetrics(), fetchAnalytics(), fetchLogs()]);
         return true;
       }
       return false;
@@ -140,7 +132,7 @@ export const useAdmin = () => {
       addToast(err instanceof Error ? err.message : 'Failed to toggle status', 'error');
       return false;
     }
-  }, [token, user, addToast, fetchUsers, fetchAnalytics, fetchLogs]);
+  }, [token, user, addToast, fetchUsers, fetchMetrics, fetchAnalytics, fetchLogs]);
 
   const deleteUser = useCallback(async (targetUserId: string, targetUserName: string) => {
     if (!token) return false;
@@ -168,7 +160,7 @@ export const useAdmin = () => {
       const response = await tasksApi.delete(taskId);
       if (response.success) {
         addToast('Task deleted', 'success');
-        await Promise.all([fetchTasks(), fetchAnalytics(), fetchLogs()]);
+        await Promise.all([fetchMetrics(), fetchAnalytics(), fetchLogs()]);
         return true;
       }
       return false;
@@ -176,7 +168,7 @@ export const useAdmin = () => {
       addToast(err instanceof Error ? err.message : 'Failed to delete task', 'error');
       return false;
     }
-  }, [token, addToast, fetchTasks, fetchAnalytics, fetchLogs]);
+  }, [token, addToast, fetchMetrics, fetchAnalytics, fetchLogs]);
 
   const createAgent = useCallback(async (name: string, role: string, systemPrompt: string, modelName?: string) => {
     if (!token) return false;
@@ -227,8 +219,8 @@ export const useAdmin = () => {
   }, [token, addToast, fetchAgents, fetchAnalytics, fetchLogs]);
 
   return {
-    users, tasks, logs, agents, analytics, metrics, loading, refreshingAnalytics,
-    fetchAnalytics, fetchMetrics, fetchUsers, fetchTasks, fetchLogs, fetchAgents, fetchAllAdminData,
+    users, logs, agents, analytics, metrics, loading, error, refreshingAnalytics,
+    fetchAnalytics, fetchMetrics, fetchUsers, fetchLogs, fetchAgents, fetchAllAdminData,
     toggleUserStatus, deleteUser, forceDeleteTask,
     createAgent, toggleAgentStatus, deleteAgent,
   };

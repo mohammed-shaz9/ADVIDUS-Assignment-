@@ -2,8 +2,9 @@ import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { hasPermission } from '../utils/permissions.js';
+import { getCachedUser, setCachedUser } from '../utils/userCache.js';
 import { env } from '../config/env.js';
-import { AuthenticatedRequest, Permission } from '../types/index.js';
+import { AuthenticatedRequest, AuthUser, Permission } from '../types/index.js';
 import { UnauthorizedError, ForbiddenError } from '../errors/AppError.js';
 
 export const protect = async (req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> => {
@@ -19,14 +20,21 @@ export const protect = async (req: AuthenticatedRequest, _res: Response, next: N
     }
 
     const decoded = jwt.verify(token, env.jwtSecret) as { id: string };
-    const user = await User.findById(decoded.id).select('-password');
+    let user = getCachedUser(decoded.id);
 
     if (!user) {
-      return next(new UnauthorizedError('Not authorized, user not found'));
-    }
+      const found = await User.findById(decoded.id).select('role status').lean();
 
-    if (user.status === 'inactive') {
-      return next(new ForbiddenError('Your account is deactivated. Please contact an admin.'));
+      if (!found) {
+        return next(new UnauthorizedError('Not authorized, user not found'));
+      }
+
+      if (found.status === 'inactive') {
+        return next(new ForbiddenError('Your account is deactivated. Please contact an admin.'));
+      }
+
+      user = found as unknown as AuthUser;
+      setCachedUser(decoded.id, user);
     }
 
     req.user = user;

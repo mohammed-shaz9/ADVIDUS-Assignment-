@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Task } from '../../types';
 import { TaskCard } from './TaskCard';
 
@@ -23,11 +23,16 @@ const statusConfig: Record<string, { icon: string; color: string; label: string 
   completed: { icon: 'ti ti-circle-check', color: 'var(--accent-emerald)', label: 'completed' },
 };
 
-export const KanbanColumn: React.FC<KanbanColumnProps> = ({
+const PAGE = 50; // cards rendered per column until "Show more"
+
+export const KanbanColumn = React.memo<KanbanColumnProps>(({
   status, tasks, dragOverColumn, onDragOver, onDragLeave, onDrop,
   onEdit, onDelete, onOpenConsole, onDragStart, onDragEnd, draggingTaskId,
 }) => {
   const config = statusConfig[status] || { icon: 'ti ti-circle', color: 'var(--text-muted)', label: status };
+  const [visible, setVisible] = useState(PAGE);
+  const shown = tasks.length > visible ? tasks.slice(0, visible) : tasks;
+  const hidden = tasks.length - shown.length;
 
   return (
     <div
@@ -45,7 +50,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       </div>
       <div className="kanban-tasks-list">
         {tasks.length > 0 ? (
-          tasks.map(t => (
+          shown.map(t => (
             <TaskCard
               key={t._id}
               task={t}
@@ -65,7 +70,13 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
             No tasks. Drag items here.
           </div>
         )}
+        {hidden > 0 && (
+          <button type="button" className="btn btn-sm btn-ghost" onClick={() => setVisible(v => v + PAGE)}>
+            Show {Math.min(hidden, PAGE)} more
+          </button>
+        )}
       </div>
     </div>
   );
-};
+});
+KanbanColumn.displayName = 'KanbanColumn';

@@ -3,35 +3,39 @@ import { useAuth } from '../contexts/AuthContext';
 import { tasksApi, agentsApi } from '../services/api';
 import { Task, TaskSummary, Agent } from '../types';
 import { cache } from '../utils/cache';
+import { useLatestSignal } from './useLatestSignal';
 
 export const useTasks = () => {
   const { token, addToast } = useAuth();
 
-  const [tasks, setTasks] = useState<Task[]>(cache.getArray<Task>('tasks'));
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [taskSummary, setTaskSummary] = useState<TaskSummary | null>(cache.get<TaskSummary>('taskSummary'));
-  const [agents, setAgents] = useState<Agent[]>(cache.getArray<Agent>('agents'));
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
+  const tasksSignal = useLatestSignal();
+  const summarySignal = useLatestSignal();
 
   const fetchTasks = useCallback(async () => {
     if (!token) return;
+    const signal = tasksSignal();
     setLoading(true);
     try {
-      const response = await tasksApi.getAll();
-      if (response.success && response.data) {
-        setTasks(response.data);
-        cache.set('tasks', response.data);
-      }
+      const response = await tasksApi.getAll({ limit: 200 }, signal);
+      if (signal.aborted) return;
+      if (response.success && response.data) setTasks(response.data);
     } catch (err) {
-      addToast(err instanceof Error ? err.message : 'Failed to fetch tasks', 'error');
+      if (!signal.aborted) addToast(err instanceof Error ? err.message : 'Failed to fetch tasks', 'error');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
-  }, [token, addToast]);
+  }, [token, addToast, tasksSignal]);
 
   const fetchTaskSummary = useCallback(async () => {
     if (!token) return;
+    const signal = summarySignal();
     try {
-      const response = await tasksApi.getSummary();
+      const response = await tasksApi.getSummary(signal);
+      if (signal.aborted) return;
       if (response.success && response.data) {
         setTaskSummary(response.data);
         cache.set('taskSummary', response.data);
@@ -39,16 +43,13 @@ export const useTasks = () => {
     } catch {
       // silent
     }
-  }, [token]);
+  }, [token, summarySignal]);
 
   const fetchActiveAgents = useCallback(async () => {
     if (!token) return;
     try {
       const response = await agentsApi.getAll();
-      if (response.success && response.data) {
-        setAgents(response.data);
-        cache.set('agents', response.data);
-      }
+      if (response.success && response.data) setAgents(response.data);
     } catch {
       // silent
     }

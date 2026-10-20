@@ -82,8 +82,30 @@ export const deleteDesignation = async (id: string) => {
   return desig;
 };
 
+// Headcount of the caller's own department — lets employees see peers without ever receiving the user list.
+export const getMyDepartmentStats = async (userId: string) => {
+  const me = await User.findById(userId).select('department').lean();
+  if (!me?.department) return null;
+  const rows = await User.aggregate([
+    { $match: { department: me.department } },
+    { $group: { _id: { status: '$status', role: '$role' }, n: { $sum: 1 } } },
+  ]);
+  const out = { total: 0, active: 0, inactive: 0, roles: {} as Record<string, number> };
+  for (const r of rows) {
+    out.total += r.n;
+    out[r._id.status === 'active' ? 'active' : 'inactive'] += r.n;
+    out.roles[r._id.role] = (out.roles[r._id.role] ?? 0) + r.n;
+  }
+  return out;
+};
+
 export const getOrgChart = async () => {
   const departments = await getDepartmentTree();
-  const users = await User.find({ status: 'active' }).select('name email role designation department').lean();
-  return { departments, users };
+  // Capped sample + exact per-department headcount; the full 60k roster is served by /admin/users (paged).
+  const [users, counts] = await Promise.all([
+    User.find({ status: 'active' }).select('name email role designation department').limit(500).lean(),
+    User.aggregate([{ $match: { status: 'active' } }, { $group: { _id: '$department', count: { $sum: 1 } } }]),
+  ]);
+  const departmentCounts = Object.fromEntries(counts.map((c) => [c._id ? String(c._id) : 'none', c.count]));
+  return { departments, users, departmentCounts };
 };

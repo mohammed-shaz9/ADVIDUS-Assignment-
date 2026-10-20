@@ -4,8 +4,8 @@ import { AuthenticatedRequest } from '../types/index.js';
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const users = await adminService.getUsers();
-    res.json({ success: true, data: users, serverTime: new Date().toISOString() });
+    const result = await adminService.getUsers(req.query as Record<string, string>, req.user!.role);
+    res.json({ success: true, ...result });
   } catch (error) {
     next(error);
   }
@@ -40,7 +40,10 @@ export const getAdminTasks = async (req: AuthenticatedRequest, res: Response, ne
 
 export const getActivityLogs = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const result = await adminService.getActivityLogs(req.query as Record<string, string>);
+    const result = await adminService.getActivityLogs(req.query as Record<string, string>, {
+      id: req.user!._id.toString(),
+      role: req.user!.role,
+    });
     res.json({ success: true, ...result, serverTime: new Date().toISOString() });
   } catch (error) {
     next(error);
@@ -58,7 +61,7 @@ export const getMetrics = async (req: AuthenticatedRequest, res: Response, next:
 
 export const getAnalytics = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const result = await adminService.getAnalytics();
+    const result = await adminService.getAnalytics(req.query as Record<string, string>);
     res.json({ success: true, data: result, serverTime: new Date().toISOString() });
   } catch (error) {
     next(error);

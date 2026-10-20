@@ -1,15 +1,12 @@
 import rateLimit from 'express-rate-limit';
-import { Response } from 'express';
 
+// Limits are per client IP. Offices share one NAT IP, so both caps are env-tunable.
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 1000, // Increased from 100 to accommodate 4s polling (15 req/min per user * 5 users = 75 req/min baseline + headroom)
+  max: parseInt(process.env.API_RATE_MAX || '', 10) || 2000,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting for health check and public endpoints
-    return req.path === '/' || req.path === '/api/analytics';
-  },
+  skip: (req) => req.path === '/analytics', // memoized, cheap; req.path is relative to the /api mount
   message: {
     success: false,
     message: 'Too many requests, please try again later.',
@@ -17,9 +14,11 @@ export const apiLimiter = rateLimit({
   },
 });
 
+// Only FAILED attempts count, so brute force is capped while 1000s of employees can sign in behind one IP.
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50, // Increased from 10 to allow multiple login attempts across users
+  max: parseInt(process.env.AUTH_RATE_MAX || '', 10) || 50,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

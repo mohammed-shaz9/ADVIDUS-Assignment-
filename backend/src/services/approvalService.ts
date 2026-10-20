@@ -8,13 +8,17 @@ export const getApprovalsForUser = async (userId: string) => {
   return Approval.find({ approver: userId })
     .populate('task', 'title description status')
     .populate('approver', 'name email')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .limit(200)
+    .lean();
 };
 
 export const getApprovalsForTask = async (taskId: string) => {
   return Approval.find({ task: taskId })
     .populate('approver', 'name email')
-    .sort({ level: 1 });
+    .sort({ level: 1 })
+    .limit(50)
+    .lean();
 };
 
 export const createApprovalChain = async (
@@ -31,7 +35,7 @@ export const createApprovalChain = async (
   await logActivity(task.owner.toString(), 'APPROVAL_CHAIN_CREATED',
     `Approval chain created for task: "${task.title}"`);
 
-  emitEvent('approval.created', { taskId });
+  emitEvent('approval.created', { taskId }, [task.owner.toString(), ...approvers.map((a) => a.approver)]);
   return approvals;
 };
 
@@ -69,6 +73,6 @@ export const decideApproval = async (
   await logActivity(userId, action,
     `${decision} approval for task: "${(approval as any).task?.title || ''}"`);
 
-  emitEvent('approval.decided', { approvalId: approval._id.toString(), decision });
+  emitEvent('approval.decided', { approvalId: approval._id.toString(), decision }, [userId, task?.owner.toString()]);
   return approval;
 };

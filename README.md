@@ -49,7 +49,7 @@ Unlike academic mini-projects, this application demonstrates how enterprise-grad
 │         │              │              │                         │
 │    ┌────┴──────────────┴──────────────┴────────────────────┐    │
 │    │              API Client (api.ts) + Cache Layer         │    │
-│    │  localStorage cache · 4s polling · optimistic updates │    │
+│    │  server-side paging · socket-driven refetch · 60s fallback│    │
 │    └────────────────────────┬──────────────────────────────┘    │
 └─────────────────────────────┼───────────────────────────────────┘
                               │ HTTP + WebSocket
@@ -85,6 +85,19 @@ Architecture Summary
 - **Socket.IO** handles real-time notifications
 - **Docker Compose** orchestrates all 3 services
 - **Render + MongoDB Atlas** for production hosting
+
+📈 Built for 60,000 employees / 50,000+ tasks
+
+Managers browse the whole organisation, so nothing in the API returns an unbounded list:
+
+- **Server-side paging + search + filters** on users, tasks and activity logs (`page`, `limit`, `q`, `status`, `role`, `action`); the UI never holds the full dataset
+- **Bounded analytics**: top-N leaderboards, grouped aggregates memoized for 5 s, `$limit` before `$lookup`
+- **Cached auth**: 5 s per-user cache, invalidated instantly on deactivate/delete
+- **Room-scoped realtime**: Socket.IO events go to admins + the affected users only (no global broadcast)
+- **Deploy-time indexes** (`npm run indexes`), pooled Mongo connections, graceful shutdown, proxy-aware rate limits
+- **Load rehearsal**: `cd backend && npm run seed:bulk -- --yes` seeds 60k users / 50k tasks and prints query timings
+
+👉 Full design notes, RBAC matrix, API changes, env vars and known limits: [`docs/HANDOVER.md`](docs/HANDOVER.md)
 
 Why this architecture?
 
@@ -148,7 +161,6 @@ npm run dev
 |---|---|
 | Frontend | http://localhost:5180 |
 | Backend API | http://localhost:5050/api |
-| Swagger Docs | http://localhost:5050/api-docs |
 | MongoDB | localhost:27017 |
 
 🔑 Demo Credentials
@@ -171,15 +183,16 @@ RBAC (Role-Based Access Control)
 - JWT authentication with token verification and expiry
 - Middleware-level permission enforcement (`protect`, `adminOnly`, `checkPermission`)
 - Role-based UI rendering (admin gets full control panel, employee gets personal workspace)
-- Session guard with 30-second status polling
-- Account deactivation detection and auto-logout
+- Session guard: 60-second visibility-aware check plus instant logout on the `user.status_changed` socket event
+- Account deactivation detection and auto-logout (server-side effect within 5 s, see `docs/HANDOVER.md`)
 
 Real-Time Collaboration
 - Socket.IO with per-user notification routing (`emitToUser`)
-- Live 4-second auto-refresh on all dashboard data
+- Socket events trigger a coalesced refetch (one request per 1.5 s burst); a 60-second fallback refresh pauses while the tab is hidden
+- Events are room-scoped: `admins` + the affected `user:<id>` rooms only, never a global broadcast
 - WebSocket events: `task.created`, `task.updated`, `task.deleted`, `user.status_changed`, `activity.created`
 - Notification bell with unread count and dropdown
-- Activity simulation endpoint randomly flips task statuses for live demo effect
+- Activity simulation (random status flips) is demo-only: off unless `ENABLE_SIMULATION=true`, admin-only, never enable on real data
 
 ACID Transactions (MongoDB)
 - Task creation and assignment in atomic operations
@@ -200,26 +213,28 @@ Performance Optimization
 - **Background refresh**: stale-while-revalidate pattern — shows cached data, refreshes silently
 - **Error resilience**: `Array.isArray` guards on all `.filter()` / `.slice()` calls — never crashes on bad data
 
-Indexing Strategy
-- `User`: compound index on `status + role`, index on `role + name`
-- `Agent`: index on `status`, compound on `role + status`
-- `ActivityLog`: compound on `action + createdAt`, `userId + createdAt`
-- `Task`: `$text` index on `title + description` for full-text search
-- `Approval`: compound on `approver + status`
+Indexing Strategy (built by `npm run indexes` on deploy; `autoIndex` is off in production)
+- `User`: `role + name` (admin list), `status + name` (directory), `department + status` (headcount), unique `email`
+- `Agent`: index on `status`
+- `ActivityLog`: `createdAt`, `action + createdAt`, `userId + createdAt`
+- `Task`: `owner + status + createdAt`, `status + createdAt`, `assignedTo.user + createdAt`, `assignedTo.agent + status`, `$text` on `title + description`
+- `Approval`: `approver + status`, unique `task + level`
+- `PerformanceMetric`: `user + snapshotDate` (latest snapshot per user)
 
 📊 Frontend Architecture
 
 ```
 frontend/src/
 ├── components/
-│   ├── common/          # ErrorBoundary, LoadingSpinner, Skeleton, ToastContainer
+│   ├── common/          # ErrorBoundary, ErrorState, LoadingSpinner, Pager, Skeleton, ToastContainer
 │   ├── dashboard/       # StatsGrid, WeeklyChart, ActivityFeed, Widgets
 │   ├── layout/          # Sidebar, Topbar, AppLayout, NotificationBell
 │   ├── tasks/           # KanbanBoard, KanbanColumn, TaskFormModal, TaskMonitorTable
 │   └── users/           # UserTable
 ├── pages/               # Lazy-loaded: Dashboard, Analytics, Performance, Settings, etc.
 ├── contexts/            # AuthContext (JWT, user state, toast notifications)
-├── hooks/               # useAdmin, useTasks (cache-first data loading)
+├── hooks/               # useAdmin, useTasks, usePagedList (server paging + abort), useSocketRefetch,
+│                        #   useVisibleInterval (pauses on hidden tab), useDebouncedValue
 ├── services/            # api.ts (all HTTP client functions)
 ├── types/               # TypeScript interfaces (User, Task, Approval, etc.)
 └── utils/               # cache.ts (localStorage), socket.ts
@@ -251,26 +266,26 @@ UI Enforcement
 | POST | `/api/auth/login` | Public |
 | POST | `/api/auth/register` | Public |
 | GET | `/api/auth/me` | Authenticated |
-| POST | `/api/auth/ensure-demo` | Public |
-| GET | `/api/auth/credentials` | Public |
+| POST | `/api/auth/ensure-demo` | Public (disabled when `DEMO_MODE=false`) |
+| GET | `/api/auth/credentials` | Public (disabled when `DEMO_MODE=false`) |
 
 **Tasks**
 | Method | Endpoint | Access |
 |---|---|---|
-| GET | `/api/tasks` | Authenticated |
+| GET | `/api/tasks?limit&status&page` | Authenticated (tasks I own or am assigned) |
 | POST | `/api/tasks` | Authenticated |
 | GET | `/api/tasks/summary` | Authenticated |
-| PUT | `/api/tasks/:id` | Authenticated |
-| DELETE | `/api/tasks/:id` | Authenticated |
-| POST | `/api/tasks/simulate` | Authenticated |
+| PUT | `/api/tasks/:id` | Owner / admin (assignee: status only) |
+| DELETE | `/api/tasks/:id` | Admin (`tasks:delete`) |
+| POST | `/api/tasks/simulate` | Admin, only when `ENABLE_SIMULATION=true` |
 
 **Admin**
 | Method | Endpoint | Access |
 |---|---|---|
-| GET | `/api/admin/dashboard` | Admin (batched — 5 calls in 1) |
-| GET | `/api/admin/users` | Authenticated |
-| GET | `/api/admin/logs` | Authenticated |
-| GET | `/api/admin/tasks` | Admin |
+| GET | `/api/admin/dashboard` | Admin (batched — 5 calls in 1, first page of each list) |
+| GET | `/api/admin/users?page&limit&q&role&status` | Admin: full rows. Employee: active users, name/designation only |
+| GET | `/api/admin/logs?page&limit&action` | Admin: all. Employee: own entries only |
+| GET | `/api/admin/tasks?page&limit&status&q` | Admin |
 | PATCH | `/api/admin/users/:id/status` | Admin |
 | DELETE | `/api/admin/users/:id` | Admin |
 
@@ -284,7 +299,7 @@ UI Enforcement
 | Method | Endpoint | Access |
 |---|---|---|
 | GET | `/api/analytics` | Authenticated (public stats) |
-| GET | `/api/admin/analytics` | Admin |
+| GET | `/api/admin/analytics?top=20` | Admin (top-N owners) |
 | GET | `/api/admin/metrics` | Admin |
 
 **Organization**
@@ -292,13 +307,14 @@ UI Enforcement
 |---|---|---|
 | GET | `/api/org/departments` | Authenticated |
 | GET | `/api/org/designations` | Authenticated |
-| GET | `/api/org/chart` | Authenticated |
+| GET | `/api/org/chart` | Authenticated (500-user sample + per-department counts) |
+| GET | `/api/org/my-department` | Authenticated (headcount of my own department) |
 
 **Performance**
 | Method | Endpoint | Access |
 |---|---|---|
 | GET | `/api/performance/me` | Authenticated |
-| GET | `/api/performance/all` | Admin |
+| GET | `/api/performance/all?limit=50` | Admin (top-N leaderboard) |
 | POST | `/api/performance/snapshot` | Admin |
 
 **Notifications, Templates, Settings**
@@ -378,19 +394,19 @@ During project demonstration:
 
 1. **Login as Admin** — see full control panel with all 11 modules
 2. **Login as Employee** — see personal workspace with Kanban board
-3. **Dashboard** — live 4-second auto-refresh with changing numbers
+3. **Dashboard** — numbers update live over WebSocket as tasks change
 4. **Kanban** — drag-and-drop tasks between columns
 5. **Approvals** — create and decide multi-level approval chains
 6. **Analytics** — real-time doughnut and bar charts
 7. **Performance** — employee scoring with refresh snapshot
 8. **Template Manager** — create task templates with checklist steps
 9. **Audit Logs** — immutable activity stream with filters
-10. **Activity Simulation** — tasks change status automatically every 4 seconds
+10. **Scale** — `cd backend && npm run seed:bulk -- --yes`, then page through 60,000 users and search by name or email prefix
 
 🧪 Testing
 
-- 27 white-box Vitest tests (authMiddleware, authService, adminService, rateLimiter)
-- All tests pass with proper mock chains for Mongoose operations
+- 153 Vitest tests in 9 files (auth middleware + cache, admin service, pagination/regex-escaping, memo, performance scoring, email-regex ReDoS guard, task RBAC, rate limiter)
+- Mock-based: no database needed (`cd backend && npm test`). Real-database load check: `npm run seed:bulk -- --yes`
 - TypeScript strict mode enabled across the codebase
 
 🏁 Conclusion
@@ -403,8 +419,8 @@ The project combines:
 - Drag-and-drop Kanban task management
 - Multi-level approval workflows
 - N+1 query elimination via aggregation pipelines
-- Optimized frontend with code splitting and caching
-- Activity simulation for live demonstrations
+- Optimized frontend with code splitting, server-side paging and socket-driven refresh
+- Load rehearsal tooling for a 60,000-employee dataset
 
 making it ideal for:
 - Enterprise architecture demonstrations

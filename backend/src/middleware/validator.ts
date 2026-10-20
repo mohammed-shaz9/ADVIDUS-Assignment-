@@ -2,6 +2,11 @@ import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../types/index.js';
 import { ValidationError } from '../errors/AppError.js';
 
+// The old /\w+([.-]?\w+)*@/ form backtracks exponentially on long near-miss input (ReDoS) and rejected
+// valid TLDs longer than 3 chars (.tech, .online). The lookahead caps the length at 254 (RFC 5321) first,
+// so even the remaining quadratic backtracking is bounded to ~254 chars.
+export const EMAIL_RE = /^(?=.{3,254}$)[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 export const validateRegister = (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
   const { name, email, password } = req.body;
 
@@ -9,8 +14,7 @@ export const validateRegister = (req: AuthenticatedRequest, _res: Response, next
     throw new ValidationError('Full name is required');
   }
 
-  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-  if (!email || typeof email !== 'string' || !emailRegex.test(email.trim())) {
+  if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
     throw new ValidationError('A valid email address is required');
   }
 
@@ -27,8 +31,7 @@ export const validateRegister = (req: AuthenticatedRequest, _res: Response, next
 export const validateLogin = (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
   const { email, password } = req.body;
 
-  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-  if (!email || typeof email !== 'string' || !emailRegex.test(email.trim())) {
+  if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
     throw new ValidationError('A valid email address is required');
   }
 

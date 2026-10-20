@@ -28,10 +28,7 @@ const userSchema = new Schema<IUserDocument>(
       required: [true, 'Email is required'],
       unique: true,
       lowercase: true,
-      match: [
-        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-        'Please enter a valid email address',
-      ],
+      match: [/^(?=.{3,254}$)[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, 'Please enter a valid email address'],
     },
     password: {
       type: String,
@@ -84,8 +81,9 @@ userSchema.methods.matchPassword = async function (enteredPassword: string): Pro
   return bcrypt.compare(enteredPassword, this.password);
 };
 
-userSchema.index({ status: 1 });
-userSchema.index({ role: 1, name: 1 });
+userSchema.index({ role: 1, name: 1 });        // admin list sort + role filter
+userSchema.index({ status: 1, name: 1 });      // active-only directory + status filter
+userSchema.index({ department: 1, status: 1 }); // department headcount / org chart
 
 const User: Model<IUserDocument> = mongoose.model<IUserDocument>('User', userSchema);
 export default User;

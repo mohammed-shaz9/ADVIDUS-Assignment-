@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { IUserDocument } from '../models/User.js';
+import { Types } from 'mongoose';
 
 export type UserRole = 'admin' | 'user';
 export type UserStatus = 'active' | 'inactive';
@@ -52,8 +52,18 @@ export interface PaginationQuery {
   limit?: string;
   status?: string;
   q?: string;
+  role?: string;
+  action?: string;
+  top?: string;
+}
+
+// What `protect` attaches to req.user (lean, password-free). Routes only need id + role.
+export interface AuthUser {
+  _id: Types.ObjectId;
+  role: UserRole;
+  status: UserStatus;
 }
 
 export interface AuthenticatedRequest extends Request {
-  user?: IUserDocument;
+  user?: AuthUser;
 }

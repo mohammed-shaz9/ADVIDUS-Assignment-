@@ -1,11 +1,35 @@
 import type {
   User, ApiResponse, Task, TaskSummary, Agent, Analytics, Metrics, ActivityLog,
   Department, Designation, TaskComment, Approval, PerformanceScore, ExtendedAnalytics,
-  TaskTemplate, SystemSetting, Integration, PaginatedResponse,
+  TaskTemplate, SystemSetting, Integration, PagedResponse, AdminDashboard, OrgChart,
+  LeaderboardEntry, UserRole, UserStatus, TaskStatus, DeptStats,
 } from '../types';
 import type { Notification as NotifType } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+// Builds `?a=1&b=2`, skipping empty / 'all' / undefined values.
+const qs = (params: Record<string, string | number | undefined> = {}) => {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== '' && v !== 'all') sp.set(k, String(v));
+  }
+  const out = sp.toString();
+  return out ? `?${out}` : '';
+};
+
+interface PageParams { page?: number; limit?: number }
+export interface UserListParams extends PageParams { q?: string; role?: UserRole | 'all'; status?: UserStatus | 'all' }
+export interface TaskListParams extends PageParams { q?: string; status?: TaskStatus | 'all' }
+export interface LogListParams extends PageParams { action?: string }
 
 async function request<T>(
   endpoint: string,
@@ -23,10 +47,10 @@ async function request<T>(
     headers,
   });
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.message || `Request failed with status ${response.status}`);
+    throw new ApiError(data.message || `Request failed with status ${response.status}`, response.status);
   }
 
   return data;
@@ -51,9 +75,10 @@ export const authApi = {
 
 // Tasks
 export const tasksApi = {
-  getAll: () => request<ApiResponse<Task[]>>('/tasks'),
+  getAll: (params: PageParams & { status?: TaskStatus | 'all' } = {}, signal?: AbortSignal) =>
+    request<ApiResponse<Task[]>>(`/tasks${qs({ ...params })}`, { signal }),
 
-  getSummary: () => request<ApiResponse<TaskSummary>>('/tasks/summary'),
+  getSummary: (signal?: AbortSignal) => request<ApiResponse<TaskSummary>>('/tasks/summary', { signal }),
 
   create: (title: string, description?: string, assignedTo?: Record<string, unknown>) =>
     request<ApiResponse<Task>>('/tasks', {
@@ -75,10 +100,12 @@ export const tasksApi = {
 
 // Admin
 export const adminApi = {
-  // Batched dashboard endpoint - single call gets all admin data
-  getDashboard: () => request<ApiResponse<{ users: User[]; tasks: PaginatedResponse<Task>; logs: PaginatedResponse<ActivityLog>; metrics: Metrics; analytics: Analytics }>>('/admin/dashboard'),
+  // Batched dashboard endpoint - users/tasks/logs are first-page slices
+  getDashboard: (signal?: AbortSignal) => request<ApiResponse<AdminDashboard>>('/admin/dashboard', { signal }),
 
-  getUsers: () => request<ApiResponse<User[]>>('/admin/users'),
+  // Non-admin callers only get active users as {_id,name,designation}
+  getUsers: (params: UserListParams = {}, signal?: AbortSignal) =>
+    request<PagedResponse<User>>(`/admin/users${qs({ ...params })}`, { signal }),
 
   toggleUserStatus: (id: string) =>
     request<ApiResponse<User>>(`/admin/users/${id}/status`, { method: 'PATCH' }),
@@ -86,24 +113,21 @@ export const adminApi = {
   deleteUser: (id: string) =>
     request<ApiResponse<null>>(`/admin/users/${id}`, { method: 'DELETE' }),
 
-  getTasks: (params?: Record<string, string>) => {
-    const search = params ? `?${new URLSearchParams(params)}` : '';
-    return request<ApiResponse<Task[]>>(`/admin/tasks${search}`);
-  },
+  getTasks: (params: TaskListParams = {}, signal?: AbortSignal) =>
+    request<PagedResponse<Task>>(`/admin/tasks${qs({ ...params })}`, { signal }),
 
-  getLogs: (params?: Record<string, string>) => {
-    const search = params ? `?${new URLSearchParams(params)}` : '';
-    return request<ApiResponse<ActivityLog[]>>(`/admin/logs${search}`);
-  },
+  getLogs: (params: LogListParams = {}, signal?: AbortSignal) =>
+    request<PagedResponse<ActivityLog>>(`/admin/logs${qs({ ...params })}`, { signal }),
 
-  getMetrics: () => request<ApiResponse<Metrics>>('/admin/metrics'),
+  getMetrics: (signal?: AbortSignal) => request<ApiResponse<Metrics>>('/admin/metrics', { signal }),
 
-  getAnalytics: () => request<ApiResponse<Analytics>>('/admin/analytics'),
+  getAnalytics: (top = 20, signal?: AbortSignal) =>
+    request<ApiResponse<Analytics>>(`/admin/analytics${qs({ top })}`, { signal }),
 };
 
 // Agents
 export const agentsApi = {
-  getAll: () => request<ApiResponse<Agent[]>>('/agents'),
+  getAll: (signal?: AbortSignal) => request<ApiResponse<Agent[]>>('/agents', { signal }),
 
   create: (data: { name: string; role: string; systemPrompt: string; modelName?: string }) =>
     request<ApiResponse<Agent>>('/agents', {
@@ -120,7 +144,7 @@ export const agentsApi = {
 
 // Organization
 export const orgApi = {
-  getDepartments: () => request<ApiResponse<Department[]>>('/org/departments'),
+  getDepartments: (signal?: AbortSignal) => request<ApiResponse<Department[]>>('/org/departments', { signal }),
   getDepartmentTree: () => request<ApiResponse<Department[]>>('/org/departments/tree'),
   createDepartment: (data: { name: string; description?: string; parentId?: string; head?: string }) =>
     request<ApiResponse<Department>>('/org/departments', { method: 'POST', body: JSON.stringify(data) }),
@@ -128,15 +152,16 @@ export const orgApi = {
     request<ApiResponse<Department>>(`/org/departments/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteDepartment: (id: string) =>
     request<ApiResponse<null>>(`/org/departments/${id}`, { method: 'DELETE' }),
-  getDesignations: (department?: string) =>
-    request<ApiResponse<Designation[]>>(`/org/designations${department ? `?department=${department}` : ''}`),
+  getDesignations: (department?: string, signal?: AbortSignal) =>
+    request<ApiResponse<Designation[]>>(`/org/designations${qs({ department })}`, { signal }),
   createDesignation: (data: { title: string; level: number; department?: string; description?: string }) =>
     request<ApiResponse<Designation>>('/org/designations', { method: 'POST', body: JSON.stringify(data) }),
   updateDesignation: (id: string, data: Partial<Designation>) =>
     request<ApiResponse<Designation>>(`/org/designations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteDesignation: (id: string) =>
     request<ApiResponse<null>>(`/org/designations/${id}`, { method: 'DELETE' }),
-  getOrgChart: () => request<ApiResponse<{ departments: Department[]; users: User[] }>>('/org/chart'),
+  getOrgChart: (signal?: AbortSignal) => request<ApiResponse<OrgChart>>('/org/chart', { signal }),
+  getMyDepartment: (signal?: AbortSignal) => request<ApiResponse<DeptStats | null>>('/org/my-department', { signal }),
 };
 
 // Comments
@@ -160,9 +185,11 @@ export const approvalApi = {
 
 // Performance
 export const performanceApi = {
-  getMyPerformance: () => request<ApiResponse<PerformanceScore>>('/performance/me'),
+  getMyPerformance: (signal?: AbortSignal) => request<ApiResponse<PerformanceScore>>('/performance/me', { signal }),
   getUserPerformance: (userId: string) => request<ApiResponse<PerformanceScore>>(`/performance/user/${userId}`),
-  getAllPerformance: () => request<ApiResponse<PerformanceScore[]>>('/performance/all'),
+  // Top-N leaderboard (server caps at 200)
+  getAllPerformance: (limit = 50, signal?: AbortSignal) =>
+    request<ApiResponse<LeaderboardEntry[]>>(`/performance/all${qs({ limit })}`, { signal }),
   takeSnapshot: () => request<ApiResponse<{ message: string }>>('/performance/snapshot', { method: 'POST' }),
 };
 
@@ -181,7 +208,7 @@ export const templatesApi = {
 };
 
 export const notificationsApi = {
-  getAll: () => request<ApiResponse<NotifType[]> & { unreadCount: number }>('/notifications'),
+  getAll: (signal?: AbortSignal) => request<ApiResponse<NotifType[]> & { unreadCount: number }>('/notifications', { signal }),
   getUnreadCount: () => request<ApiResponse<{ count: number }>>('/notifications/unread-count'),
   markAsRead: (id: string) =>
     request<ApiResponse<NotifType>>(`/notifications/${id}/read`, { method: 'PATCH' }),

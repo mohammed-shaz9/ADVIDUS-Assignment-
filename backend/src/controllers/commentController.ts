@@ -9,7 +9,9 @@ export const getComments = async (req: AuthenticatedRequest, res: Response, next
   try {
     const comments = await TaskComment.find({ task: req.params.taskId as string })
       .populate('author', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
     res.json({ success: true, data: comments, serverTime: new Date().toISOString() });
   } catch (e) { next(e); }
 };
@@ -25,7 +27,11 @@ export const createComment = async (req: AuthenticatedRequest, res: Response, ne
       attachments: req.body.attachments,
     });
     const populated = await comment.populate('author', 'name email');
-    emitEvent('comment.created', { taskId: req.params.taskId, commentId: comment._id.toString() });
+    emitEvent(
+      'comment.created',
+      { taskId: req.params.taskId, commentId: comment._id.toString() },
+      [task.owner.toString(), task.assignedTo?.user?.toString(), req.user!._id.toString()]
+    );
     res.status(201).json({ success: true, data: populated, serverTime: new Date().toISOString() });
   } catch (e) { next(e); }
 };

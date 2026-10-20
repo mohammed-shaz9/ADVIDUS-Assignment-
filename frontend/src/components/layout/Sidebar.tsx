@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useVisibleInterval } from '../../hooks/useVisibleInterval';
+import { useSocketRefetch } from '../../hooks/useSocketRefetch';
 import { User, TabType } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { tasksApi } from '../../services/api';
@@ -9,6 +11,8 @@ interface SidebarProps {
   onTabChange: (tab: TabType) => void;
   onLogout: () => void;
 }
+
+const PENDING_EVENTS = ['task.created', 'task.updated', 'task.deleted', 'approval.created', 'approval.decided'];
 
 export const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, onTabChange, onLogout }) => {
   const { token } = useAuth();
@@ -22,7 +26,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, onTabChange, 
     } catch {}
   }, [token]);
 
-  useEffect(() => { fetchPendingCount(); const interval = setInterval(fetchPendingCount, 10000); return () => clearInterval(interval); }, [fetchPendingCount]);
+  useEffect(() => { fetchPendingCount(); }, [fetchPendingCount]);
+  useSocketRefetch(PENDING_EVENTS, fetchPendingCount);
+  useVisibleInterval(fetchPendingCount, 60_000, !!token);
 
   const sections: Array<{
     title: string;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Task } from '../../types';
 import { KanbanColumn } from './KanbanColumn';
 
@@ -18,19 +18,24 @@ interface KanbanBoardProps {
 
 const COLUMNS = ['pending', 'in_progress', 'completed'];
 
-export const KanbanBoard: React.FC<KanbanBoardProps> = ({
+export const KanbanBoard = React.memo<KanbanBoardProps>(({
   tasks, draggingTaskId, dragOverColumn,
   onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
   onEdit, onDelete, onOpenConsole,
 }) => {
-  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  // One pass to bucket tasks by status (instead of one filter per column).
+  const byStatus = useMemo(() => {
+    const buckets: Record<string, Task[]> = { pending: [], in_progress: [], completed: [] };
+    if (Array.isArray(tasks)) tasks.forEach(t => buckets[t.status]?.push(t));
+    return buckets;
+  }, [tasks]);
   return (
     <div className="kanban-board">
       {COLUMNS.map(status => (
         <KanbanColumn
           key={status}
           status={status}
-          tasks={safeTasks.filter(t => t.status === status)}
+          tasks={byStatus[status]}
           dragOverColumn={dragOverColumn}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
@@ -45,4 +50,5 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       ))}
     </div>
   );
-};
+});
+KanbanBoard.displayName = 'KanbanBoard';

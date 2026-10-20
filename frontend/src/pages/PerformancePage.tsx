@@ -1,38 +1,58 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { performanceApi } from '../services/api';
-import { PerformanceScore } from '../types';
-import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { cache } from '../utils/cache';
+import { LeaderboardEntry } from '../types';
+import { Skeleton } from '../components/common/Skeleton';
+import { ErrorState } from '../components/common/ErrorState';
+
+const LEADERBOARD_SIZE = 50;
 
 export const PerformancePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, addToast } = useAuth();
   const isAdmin = user?.role === 'admin';
-  const [scores, setScores] = useState<PerformanceScore[]>(cache.getArray<PerformanceScore>('performance'));
-  const [loading, setLoading] = useState(scores.length === 0);
+  const [scores, setScores] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { loadScores(); }, []);
-
-  const loadScores = async () => {
+  // Admin sees a top-N leaderboard (server-side); everyone else sees only themselves.
+  const loadScores = useCallback(async (signal?: AbortSignal) => {
     try {
       if (isAdmin) {
-        const res = await performanceApi.getAllPerformance();
-        const data = Array.isArray(res.data) ? res.data : [];
-        setScores(data);
-        cache.set('performance', data);
+        const res = await performanceApi.getAllPerformance(LEADERBOARD_SIZE, signal);
+        if (signal?.aborted) return;
+        setScores(Array.isArray(res.data) ? res.data : []);
       } else {
-        const res = await performanceApi.getMyPerformance();
-        const data = res.data ? [res.data] : [];
-        setScores(data);
-        cache.set('performance', data);
+        const res = await performanceApi.getMyPerformance(signal);
+        if (signal?.aborted) return;
+        setScores(res.data ? [res.data] : []);
       }
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
+      setError(null);
+    } catch (e) {
+      if (!signal?.aborted) setError(e instanceof Error ? e.message : 'Failed to load performance data');
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
+  }, [isAdmin]);
 
-  const safeScores = scores.filter(s => s && s.performance && typeof s.performance.score === 'number');
+  useEffect(() => {
+    const ctl = new AbortController();
+    loadScores(ctl.signal);
+    return () => ctl.abort();
+  }, [loadScores]);
 
-  if (loading) return <LoadingSpinner message="Loading performance data..." />;
+  const safeScores = useMemo(
+    () => scores.filter(s => s && s.performance && typeof s.performance.score === 'number'),
+    [scores],
+  );
+  const topScorers = useMemo(
+    () => [...safeScores].sort((a, b) => b.performance.score - a.performance.score).slice(0, 3),
+    [safeScores],
+  );
+
+  const retry = () => { setLoading(true); setError(null); loadScores(); };
+
+  if (loading) return <div className="page-container"><Skeleton height="96px" count={4} /></div>;
+  if (error) return <div className="page-container"><ErrorState message={error} onRetry={retry} /></div>;
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return '#22c55e';
@@ -41,13 +61,19 @@ export const PerformancePage: React.FC = () => {
   };
 
   const avgScore = safeScores.length > 0 ? Math.round(safeScores.reduce((a, s) => a + s.performance.score, 0) / safeScores.length) : 0;
-  const topScorers = [...safeScores].sort((a, b) => b.performance.score - a.performance.score).slice(0, 3);
 
   return (
     <div className="page-container">
       <div className="page-header">
         <h2>Performance Scores</h2>
-        <button className="btn-primary btn-sm" onClick={async () => { await performanceApi.takeSnapshot(); loadScores(); }}>
+        <button className="btn-primary btn-sm" onClick={async () => {
+          try {
+            await performanceApi.takeSnapshot();
+            loadScores();
+          } catch (e) {
+            addToast(e instanceof Error ? e.message : 'Snapshot failed', 'error');
+          }
+        }}>
           <i className="ti ti-refresh" style={{ marginRight: 6 }}></i> Refresh Snapshot
         </button>
       </div>
@@ -57,7 +83,7 @@ export const PerformancePage: React.FC = () => {
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(99,102,241,0.15)', color: '#6366f1' }}><i className="ti ti-users"></i></div>
             <div className="stat-val">{safeScores.length}</div>
-            <div className="stat-label">Employees Scored</div>
+            <div className="stat-label">{isAdmin ? `Leaderboard (top ${LEADERBOARD_SIZE})` : 'Employees Scored'}</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}><i className="ti ti-trending-up"></i></div>
@@ -83,7 +109,7 @@ export const PerformancePage: React.FC = () => {
                   <div>
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.user.name}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{item.user.email}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{(item.user as any).designation || item.user.role}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{(item.user as { designation?: string }).designation || item.user.role}</div>
                   </div>
                   <div style={{ position: 'relative', width: 56, height: 56 }}>
                     <svg width="56" height="56" viewBox="0 0 36 36">
@@ -110,8 +136,8 @@ export const PerformancePage: React.FC = () => {
         })}
       </div>
 
-      {safeScores.length === 0 && !loading && (
-        <div className="card"><div className="card-body" style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No performance data yet. Click "Refresh Snapshot" to calculate scores.</div></div>
+      {safeScores.length === 0 && (
+        <div className="empty-state">No performance data yet. Click "Refresh Snapshot" to calculate scores.</div>
       )}
     </div>
   );

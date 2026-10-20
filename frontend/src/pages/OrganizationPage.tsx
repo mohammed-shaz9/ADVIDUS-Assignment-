@@ -1,37 +1,43 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useCallback, useEffect, useState } from 'react';
 import { orgApi } from '../services/api';
-import { Department, Designation, User } from '../types';
-import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { Department, Designation } from '../types';
+import { Skeleton } from '../components/common/Skeleton';
+import { ErrorState } from '../components/common/ErrorState';
 
 export const OrganizationPage: React.FC = () => {
-  const { user } = useAuth();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [deptCounts, setDeptCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<'tree' | 'designations'>('tree');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async (signal?: AbortSignal) => {
     try {
       const [deptRes, desigRes, chartRes] = await Promise.all([
-        orgApi.getDepartments(),
-        orgApi.getDesignations(),
-        orgApi.getOrgChart(),
+        orgApi.getDepartments(signal),
+        orgApi.getDesignations(undefined, signal),
+        orgApi.getOrgChart(signal),
       ]);
+      if (signal?.aborted) return;
       setDepartments(deptRes.data || []);
       setDesignations(desigRes.data || []);
-      setUsers(chartRes.data?.users || []);
+      setDeptCounts(chartRes.data?.departmentCounts || {});
+      setError(null);
     } catch (e) {
-      console.error(e);
+      if (!signal?.aborted) setError(e instanceof Error ? e.message : 'Failed to load organization');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const ctl = new AbortController();
+    loadData(ctl.signal);
+    return () => ctl.abort();
+  }, [loadData]);
+
+  const retry = () => { setLoading(true); setError(null); loadData(); };
 
   const renderDepartmentTree = (depts: Department[], level = 0) => (
     <ul style={{ paddingLeft: level > 0 ? 20 : 0, listStyle: 'none', margin: 0 }}>
@@ -52,7 +58,8 @@ export const OrganizationPage: React.FC = () => {
               <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{dept.name}</div>
               {dept.head && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>Head: {dept.head.name}</div>}
             </div>
-            {!dept.isActive && <span className="badge badge-inactive">Inactive</span>}
+            <span className="badge badge--muted">{(deptCounts[dept._id] ?? 0).toLocaleString()} members</span>
+            {!dept.isActive && <span className="badge badge--danger">Inactive</span>}
           </div>
           {dept.children && dept.children.length > 0 && renderDepartmentTree(dept.children, level + 1)}
         </li>
@@ -60,7 +67,8 @@ export const OrganizationPage: React.FC = () => {
     </ul>
   );
 
-  if (loading) return <LoadingSpinner message="Loading organization..." />;
+  if (loading) return <div className="page-container"><Skeleton height="48px" count={6} /></div>;
+  if (error) return <div className="page-container"><ErrorState message={error} onRetry={retry} /></div>;
 
   return (
     <div className="page-container">
@@ -88,21 +96,25 @@ export const OrganizationPage: React.FC = () => {
         <div className="card">
           <div className="card-header"><h3>Job Designations</h3></div>
           <div className="card-body" style={{ padding: 0 }}>
-            <table className="table">
-              <thead><tr><th>Title</th><th>Level</th><th>Department</th><th>Status</th></tr></thead>
-              <tbody>
-                {designations.map(d => (
-                  <tr key={d._id}>
-                    <td style={{ fontWeight: 500 }}>{d.title}</td>
-                    <td>
-                      <span className="badge" style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1' }}>L{d.level}</span>
-                    </td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{(d.department as any)?.name || '—'}</td>
-                    <td><span className={`badge ${d.isActive ? 'badge-active' : 'badge-inactive'}`}>{d.isActive ? 'Active' : 'Inactive'}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {designations.length === 0 ? (
+              <div className="empty-state">No designations found.</div>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead><tr><th>Title</th><th>Level</th><th>Department</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {designations.map(d => (
+                      <tr key={d._id}>
+                        <td style={{ fontWeight: 500 }}>{d.title}</td>
+                        <td><span className="badge badge--muted">L{d.level}</span></td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{d.department?.name || '—'}</td>
+                        <td><span className={`badge ${d.isActive ? 'badge--success' : 'badge--danger'}`}>{d.isActive ? 'Active' : 'Inactive'}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

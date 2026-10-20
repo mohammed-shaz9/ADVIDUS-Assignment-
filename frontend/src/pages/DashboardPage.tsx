@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useAuth, API_URL } from '../contexts/AuthContext';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { useTasks } from '../hooks/useTasks';
 import { useAdmin } from '../hooks/useAdmin';
-import { createSocket } from '../utils/socket';
+import { useVisibleInterval } from '../hooks/useVisibleInterval';
+import { useSocketRefetch } from '../hooks/useSocketRefetch';
 import { AppLayout } from '../components/layout/AppLayout';
 import { StatsGrid } from '../components/dashboard/StatsGrid';
 import { AIInsightCard } from '../components/dashboard/AIInsightCard';
@@ -19,7 +20,8 @@ import { UserTable } from '../components/users/UserTable';
 import { AgentFormModal } from '../components/agents/AgentFormModal';
 import { AgentConsoleModal } from '../components/agents/AgentConsoleModal';
 import { ActivityLogTable } from '../components/activity/ActivityLogTable';
-import { TabType, Task } from '../types';
+import { orgApi } from '../services/api';
+import { TabType, Task, DeptStats } from '../types';
 
 const OrganizationPage = React.lazy(() => import('./OrganizationPage').then(m => ({ default: m.OrganizationPage })));
 const ApprovalsPage = React.lazy(() => import('./ApprovalsPage').then(m => ({ default: m.ApprovalsPage })));
@@ -28,6 +30,12 @@ const PerformancePage = React.lazy(() => import('./PerformancePage').then(m => (
 const TemplatesPage = React.lazy(() => import('./TemplatesPage').then(m => ({ default: m.TemplatesPage })));
 const SettingsPage = React.lazy(() => import('./SettingsPage').then(m => ({ default: m.SettingsPage })));
 const IntegrationsPage = React.lazy(() => import('./IntegrationsPage').then(m => ({ default: m.IntegrationsPage })));
+
+const TASK_EVENTS = ['task.created', 'task.updated', 'task.deleted'];
+const ADMIN_TASK_EVENTS = [...TASK_EVENTS, 'agent.created', 'agent.status_changed', 'agent.deleted'];
+const ACTIVITY_EVENTS = ['activity.created'];
+const USER_EVENTS = ['user.status_changed'];
+const FALLBACK_REFRESH_MS = 60_000; // sockets are primary; this only covers missed events
 
 const PageSkeleton: React.FC = () => (
   <div style={{ padding: '24px', textAlign: 'center', color: '#6B7280' }}>
@@ -52,9 +60,9 @@ const DashboardPage: React.FC = () => {
   } = useTasks();
 
   const {
-    users: adminUsers, tasks: adminTasks, logs: adminLogs, agents: adminAgents,
-    analytics, metrics, loading: loadingAdmin, fetchAllAdminData, fetchMetrics, fetchAnalytics,
-    fetchUsers, fetchTasks, fetchLogs,
+    users: adminUsers, logs: adminLogs,
+    analytics, metrics, loading: loadingAdmin, error: adminError, fetchAllAdminData, fetchMetrics,
+    fetchUsers, fetchLogs,
     toggleUserStatus, deleteUser, forceDeleteTask,
     createAgent, toggleAgentStatus, deleteAgent,
   } = useAdmin();
@@ -97,135 +105,88 @@ const DashboardPage: React.FC = () => {
     logout();
   }, [logout]);
 
-  // Session guard
-  useEffect(() => {
-    const checkUserStatus = async () => {
-      if (!token) return;
-      try {
-        const response = await fetch(`${API_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) {
-          logout();
-          addToast('Session terminated.', 'error');
-          return;
-        }
-        const data = await response.json();
-        if (data.status === 'inactive') {
-          logout();
-          addToast('Account deactivated by administrator.', 'error');
-        }
-      } catch {
-        // silent
-      }
-    };
-
-    checkUserStatus();
-    const interval = setInterval(checkUserStatus, 30000);
-    return () => clearInterval(interval);
-  }, [token, logout, addToast]);
+  // Employee widgets: own department headcount + own recent activity (server-scoped; no user list is sent).
+  const [deptStats, setDeptStats] = useState<DeptStats | null>(null);
+  const [deptLoading, setDeptLoading] = useState(!isAdmin);
+  const fetchDept = useCallback(async () => {
+    try {
+      const res = await orgApi.getMyDepartment();
+      if (res.success) setDeptStats(res.data ?? null);
+    } catch {
+      // widget stays on its last value
+    } finally {
+      setDeptLoading(false);
+    }
+  }, []);
 
   // Initial data fetch
   useEffect(() => {
     fetchUserTasks();
     fetchTaskSummary();
     fetchActiveAgents();
-    if (isAdmin) {
-      fetchAllAdminData();
+    if (!isAdmin) {
+      fetchLogs();
+      fetchDept();
     }
-  }, [isAdmin, fetchUserTasks, fetchTaskSummary, fetchActiveAgents, fetchAllAdminData]);
+  }, [fetchUserTasks, fetchTaskSummary, fetchActiveAgents, isAdmin, fetchLogs, fetchDept]);
 
-  // WebSocket for admin real-time
+  // Admin dashboard slices are only needed (and refreshed) while that tab is open.
+  const onDashboard = isAdmin && activeTab === 'dashboard';
   useEffect(() => {
-    if (!token || !isAdmin) return;
-    const socket = createSocket(API_URL, token);
-    const refresh = () => fetchMetrics();
-    const events = ['connect', 'task.created', 'task.updated', 'task.deleted',
-      'user.status_changed', 'agent.created', 'agent.status_changed',
-      'agent.deleted', 'activity.created'];
-    events.forEach(e => socket.on(e, refresh));
-    return () => {
-      socket.removeAllListeners();
-      socket.disconnect();
-    };
-  }, [token, isAdmin, fetchMetrics]);
+    if (onDashboard) fetchAllAdminData();
+  }, [onDashboard, fetchAllAdminData]);
 
-  // Simulate activity to make numbers look alive for HR demo
-  const simulateActivity = useCallback(async () => {
-    if (!token) return;
-    try {
-      await fetch(`${API_URL}/tasks/simulate`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch {}
-  }, [token]);
+  // Realtime: coalesced refetch of only the slice an event affects.
+  // Server delivers just the events that concern this user (admins get everything).
+  const refreshMyTasks = useCallback(() => { fetchUserTasks(); fetchTaskSummary(); }, [fetchUserTasks, fetchTaskSummary]);
+  useSocketRefetch(TASK_EVENTS, refreshMyTasks);
+  useSocketRefetch(ADMIN_TASK_EVENTS, fetchMetrics, 1500, onDashboard);
+  useSocketRefetch(ACTIVITY_EVENTS, fetchLogs, 1500, onDashboard || !isAdmin);
+  useSocketRefetch(USER_EVENTS, fetchUsers, 1500, onDashboard);
 
-  // Polling — every 4s to make numbers look alive for HR demo
-  useEffect(() => {
-    if (!token) return;
+  // Fallback refresh: paused while tab hidden, refires on focus.
+  useVisibleInterval(() => {
     fetchTaskSummary();
     fetchUserTasks();
-    const interval = setInterval(() => {
-      fetchTaskSummary();
-      fetchUserTasks();
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [token, fetchTaskSummary, fetchUserTasks]);
-
-  // Non-admin polling — fetch team/department data for widgets
-  useEffect(() => {
-    if (!token || isAdmin) return;
-    fetchUsers();
-    fetchLogs();
-    const interval = setInterval(() => {
-      fetchUsers();
-      fetchLogs();
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [token, isAdmin, fetchUsers, fetchLogs]);
-
-  useEffect(() => {
-    if (!token || !isAdmin) return;
-    simulateActivity();
-    fetchAllAdminData();
-    const interval = setInterval(() => {
-      simulateActivity();
-      fetchAllAdminData();
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [token, isAdmin, fetchAllAdminData, simulateActivity]);
+    if (onDashboard) fetchAllAdminData();
+    if (!isAdmin) { fetchLogs(); fetchDept(); }
+  }, FALLBACK_REFRESH_MS, !!token);
 
   // DnD state
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+  const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
     setDraggingTaskId(taskId);
     e.dataTransfer.setData('text/plain', taskId);
     (e.currentTarget as HTMLElement).classList.add('dragging');
-  };
+  }, []);
 
-  const handleDragEnd = (e: React.DragEvent) => {
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
     setDraggingTaskId(null);
     setDragOverColumn(null);
     (e.currentTarget as HTMLElement).classList.remove('dragging');
-  };
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent, status: string) => {
+  const handleDragOver = useCallback((e: React.DragEvent, status: string) => {
     e.preventDefault();
     setDragOverColumn(status);
-  };
+  }, []);
 
-  const handleDragLeave = () => setDragOverColumn(null);
+  const handleDragLeave = useCallback(() => setDragOverColumn(null), []);
 
-  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
+  // Latest values for the stable drop handler below
+  const userTasksRef = useRef(userTasks);
+  const draggingRef = useRef(draggingTaskId);
+  useEffect(() => { userTasksRef.current = userTasks; draggingRef.current = draggingTaskId; });
+
+  const handleDrop = useCallback(async (e: React.DragEvent, targetStatus: string) => {
     e.preventDefault();
     setDragOverColumn(null);
-    const taskId = e.dataTransfer.getData('text/plain') || draggingTaskId;
+    const taskId = e.dataTransfer.getData('text/plain') || draggingRef.current;
     if (!taskId) return;
 
-    const task = userTasks.find(t => t._id === taskId);
+    const task = userTasksRef.current.find(t => t._id === taskId);
     if (!task || task.status === targetStatus) return;
 
     const success = await updateTask(task._id, {
@@ -238,8 +199,8 @@ const DashboardPage: React.FC = () => {
       } as any : undefined,
     } as any);
 
-    if (success && isAdmin) fetchAllAdminData();
-  };
+    return success;
+  }, [updateTask]);
 
   // Modal state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -248,28 +209,11 @@ const DashboardPage: React.FC = () => {
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [consoleTask, setConsoleTask] = useState<Task | null>(null);
 
-  // Search/filter state
-  const [taskSearch, setTaskSearch] = useState('');
-  const [userSearch, setUserSearch] = useState('');
-  const [userStatusFilter, setUserStatusFilter] = useState('all');
-  const [monitorSearch, setMonitorSearch] = useState('');
-  const [monitorStatusFilter, setMonitorStatusFilter] = useState('all');
-  const [logSearch, setLogSearch] = useState('');
-  const [logActionFilter, setLogActionFilter] = useState('all');
-
-  const myTasksFiltered = useMemo(() => {
-    return userTasks.filter(t => {
-      const q = taskSearch.toLowerCase();
-      return t.title.toLowerCase().includes(q) ||
-        (t.description && t.description.toLowerCase().includes(q));
-    });
-  }, [userTasks, taskSearch]);
-
-  const openEditModal = (task: Task) => {
+  const openEditModal = useCallback((task: Task) => {
     setEditingTask(task);
     fetchActiveAgents();
     setIsTaskModalOpen(true);
-  };
+  }, [fetchActiveAgents]);
 
   const openCreateModal = () => {
     setEditingTask(null);
@@ -295,22 +239,25 @@ const DashboardPage: React.FC = () => {
       success = await createTask(data.title, data.description, delegation);
     }
 
-    if (success) {
-      setIsTaskModalOpen(false);
-      if (isAdmin) fetchAllAdminData();
-    }
+    if (success) setIsTaskModalOpen(false);
   };
 
-  const handleDeleteTaskAction = async (taskId: string) => {
+  const handleDeleteTaskAction = useCallback(async (taskId: string) => {
     if (!window.confirm('Erase this task permanently?')) return;
-    const success = await deleteTask(taskId);
-    if (success && isAdmin) fetchAllAdminData();
-  };
+    await deleteTask(taskId);
+  }, [deleteTask]);
 
-  const openConsole = (task: Task) => {
+  const openConsole = useCallback((task: Task) => {
     setConsoleTask(task);
     setIsConsoleOpen(true);
-  };
+  }, []);
+
+  // userId -> total tasks, from the analytics top-N (no client-side scan of task lists)
+  const taskCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    analytics?.userTaskStats?.forEach(u => { m[u._id] = u.totalTasks; });
+    return m;
+  }, [analytics]);
 
   const triggerRerun = async () => {
     if (!consoleTask) return;
@@ -326,10 +273,7 @@ const DashboardPage: React.FC = () => {
       status: 'pending',
       assignedTo: delegation as any,
     } as any);
-    if (success) {
-      addToast('AI Agent execution rebooted', 'info');
-      if (isAdmin) fetchAllAdminData();
-    }
+    if (success) addToast('AI Agent execution rebooted', 'info');
   };
 
   const getPageTitle = () => {
@@ -378,8 +322,11 @@ const DashboardPage: React.FC = () => {
             </div>
             <UserManagementTable
               users={adminUsers}
-              tasks={adminTasks}
+              taskCounts={taskCounts}
               currentUserId={user!._id}
+              loading={loadingAdmin}
+              error={adminError}
+              onRetry={fetchAllAdminData}
               onToggleStatus={toggleUserStatus}
               onDeleteUser={deleteUser}
               onViewAll={() => handleTabChange('users')}
@@ -389,12 +336,7 @@ const DashboardPage: React.FC = () => {
 
         {activeTab === 'users' && isAdmin && (
           <UserTable
-            users={adminUsers}
             currentUserId={user!._id}
-            search={userSearch}
-            statusFilter={userStatusFilter}
-            onSearchChange={setUserSearch}
-            onStatusFilterChange={setUserStatusFilter}
             onToggleStatus={toggleUserStatus}
             onDelete={deleteUser}
           />
@@ -477,10 +419,9 @@ const DashboardPage: React.FC = () => {
                       tasks={userTasks} 
                       loading={loadingTasks}
                     />
-                    <DepartmentStats 
-                      users={adminUsers} 
-                      currentUserDept={user?.department}
-                      loading={loadingAdmin}
+                    <DepartmentStats
+                      stats={deptStats}
+                      loading={deptLoading}
                     />
                     <TeamActivityFeed 
                       logs={adminLogs} 
@@ -491,7 +432,7 @@ const DashboardPage: React.FC = () => {
                 )}
 
                <KanbanBoard
-                tasks={myTasksFiltered}
+                tasks={userTasks}
                 draggingTaskId={draggingTaskId}
                 dragOverColumn={dragOverColumn}
                 onDragStart={handleDragStart}
@@ -506,11 +447,6 @@ const DashboardPage: React.FC = () => {
 
               {isAdmin && (
                 <TaskMonitorTable
-                  tasks={adminTasks}
-                  search={monitorSearch}
-                  statusFilter={monitorStatusFilter}
-                  onSearchChange={setMonitorSearch}
-                  onStatusFilterChange={setMonitorStatusFilter}
                   onOpenConsole={openConsole}
                   onForceDelete={forceDeleteTask}
                 />
@@ -520,13 +456,7 @@ const DashboardPage: React.FC = () => {
         )}
 
         {activeTab === 'activity' && isAdmin && (
-          <ActivityLogTable
-            logs={adminLogs}
-            search={logSearch}
-            actionFilter={logActionFilter}
-            onSearchChange={setLogSearch}
-            onActionFilterChange={setLogActionFilter}
-          />
+          <ActivityLogTable />
         )}
 
         {activeTab === 'org' && isAdmin && <LazyPage key="org"><OrganizationPage /></LazyPage>}

@@ -1,43 +1,20 @@
-import React, { useMemo } from 'react';
-import { User } from '../../types';
+import React from 'react';
+import { DeptStats } from '../../types';
 import { Skeleton } from '../common/Skeleton';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 
 interface DepartmentStatsProps {
-  users: User[];
-  currentUserDept?: string;
+  stats: DeptStats | null; // server-aggregated headcount for MY department (GET /org/my-department)
   loading: boolean;
 }
 
 /**
- * Department Stats Widget
- * Shows peer comparison and department-level insights
- * Industry best practices:
- * - Filtered to show only current user's department
- * - Comparison metrics for healthy team dynamics
- * - Real-time user status tracking
+ * Department Stats Widget — peer headcount for the signed-in employee's own department.
+ * Counts come from one indexed aggregate on the server; the client never sees the user list.
  */
 export const DepartmentStats = React.memo<DepartmentStatsProps>(
-  ({ users, currentUserDept, loading }) => {
-    const safeUsers = Array.isArray(users) ? users : [];
-    const deptStats = useMemo(() => {
-      if (!currentUserDept) return null;
-      
-      const deptUsers = safeUsers.filter(u => u.department === currentUserDept);
-      const stats = {
-        total: deptUsers.length,
-        active: deptUsers.filter(u => u.status === 'active').length,
-        inactive: deptUsers.filter(u => u.status === 'inactive').length,
-        avgRoleCount: {} as Record<string, number>,
-      };
-
-      deptUsers.forEach(u => {
-        const role = u.role || 'user';
-        stats.avgRoleCount[role] = (stats.avgRoleCount[role] || 0) + 1;
-      });
-
-      return stats;
-    }, [safeUsers, currentUserDept]);
+  ({ stats, loading }) => {
+    const deptStats = stats && stats.total > 0 ? { ...stats, avgRoleCount: stats.roles } : null;
 
     if (loading) return <Skeleton height="140px" count={3} />;
     if (!deptStats) {

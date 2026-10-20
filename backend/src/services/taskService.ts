@@ -1,10 +1,14 @@
+import { Types } from 'mongoose';
 import Task from '../models/Task.js';
 import { logActivity } from '../utils/activityLogger.js';
 import { executeAgentTask } from '../utils/agentExecutor.js';
-import { emitEvent, emitToUser } from '../utils/realtime.js';
+import { emitEvent } from '../utils/realtime.js';
+import { parsePage, oneOf } from '../utils/paginate.js';
 import { NotFoundError, ForbiddenError } from '../errors/AppError.js';
-import { TaskCounts } from '../types/index.js';
+import { TaskCounts, PaginationQuery } from '../types/index.js';
 import { createNotification } from './notificationService.js';
+
+const TASK_STATUSES = ['pending', 'in_progress', 'completed'] as const;
 
 export const createTask = async (
   title: string,
@@ -20,7 +24,7 @@ export const createTask = async (
   });
 
   await logActivity(ownerId, 'TASK_CREATED', `Created task: "${title}"`);
-  emitEvent('task.created', { taskId: task._id.toString() });
+  emitEvent('task.created', { taskId: task._id.toString() }, [ownerId, task.assignedTo?.user?.toString()]);
 
   if (task.assignedTo?.user && task.assignedTo.user.toString() !== ownerId) {
     createNotification(
@@ -39,15 +43,26 @@ export const createTask = async (
   return task;
 };
 
-export const getTasks = async (userId: string) => {
-  return Task.find({ owner: userId })
+// "Mine" = tasks I own or that were assigned to me.
+export const getTasks = async (userId: string, query: PaginationQuery = {}) => {
+  const { skip, limit } = parsePage(query, 200, 500);
+  const filter: Record<string, unknown> = { $or: [{ owner: userId }, { 'assignedTo.user': userId }] };
+  const status = oneOf(query.status, TASK_STATUSES);
+  if (status) filter.status = status;
+
+  return Task.find(filter)
     .populate('assignedTo.user', 'name email')
     .populate('assignedTo.agent', 'name role modelName status')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 };
 
 export const getTaskSummary = async (userId: string) => {
-  const match = { owner: userId };
+  // aggregate() does not cast strings to ObjectId (find() does) — cast explicitly or nothing matches.
+  const id = new Types.ObjectId(userId);
+  const match = { $or: [{ owner: id }, { 'assignedTo.user': id }] };
 
   const grouped = await Task.aggregate([
     { $match: match },
@@ -84,13 +99,20 @@ export const updateTask = async (
     throw new NotFoundError('Task');
   }
 
-  if (task.owner.toString() !== userId && userRole !== 'admin') {
+  const isOwner = task.owner.toString() === userId;
+  const isAssignee = task.assignedTo?.user?.toString() === userId;
+  if (!isOwner && !isAssignee && userRole !== 'admin') {
     throw new ForbiddenError('Not authorized to update this task');
+  }
+  // An assignee works the task (status) but cannot retitle, reassign or reopen scope.
+  if (!isOwner && userRole !== 'admin') {
+    updates = { status: updates.status };
   }
 
   const oldStatus = task.status;
   const oldAssigneeType = task.assignedTo?.assigneeType;
   const oldAgentId = task.assignedTo?.agent?.toString();
+  const oldAssigneeId = task.assignedTo?.user?.toString();
 
   if (updates.title !== undefined) task.title = updates.title;
   if (updates.description !== undefined) task.description = updates.description;
@@ -128,7 +150,11 @@ export const updateTask = async (
     .populate('assignedTo.user', 'name email')
     .populate('assignedTo.agent', 'name role modelName status');
 
-  emitEvent('task.updated', { taskId: populated!._id.toString(), status: populated!.status });
+  emitEvent(
+    'task.updated',
+    { taskId: populated!._id.toString(), status: populated!.status },
+    [task.owner.toString(), oldAssigneeId, task.assignedTo?.user?.toString()]
+  );
 
   if (updates.status && updates.status !== oldStatus && task.owner.toString() !== userId) {
     createNotification(
@@ -156,7 +182,7 @@ export const deleteTask = async (taskId: string, userId: string, userRole: strin
   await Task.findByIdAndDelete(taskId);
 
   await logActivity(userId, 'TASK_DELETED', `Deleted task: "${task.title}"`);
-  emitEvent('task.deleted', { taskId: task._id.toString() });
+  emitEvent('task.deleted', { taskId: task._id.toString() }, [task.owner.toString(), task.assignedTo?.user?.toString()]);
 
   return { message: 'Task removed successfully' };
 };

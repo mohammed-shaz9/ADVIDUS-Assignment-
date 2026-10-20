@@ -1,22 +1,71 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { User } from '../types';
 import { adminApi } from '../services/api';
+import { usePagedList } from '../hooks/usePagedList';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { Pager } from '../components/common/Pager';
+import { ErrorState } from '../components/common/ErrorState';
+import { Skeleton } from '../components/common/Skeleton';
+
+const DIRECTORY_PAGE_SIZE = 10;
+
+// Admin-only: server-paged, searchable user directory.
+const UserDirectory: React.FC = () => {
+  const [search, setSearch] = useState('');
+  const q = useDebouncedValue(search.trim(), 300);
+  const { data, loading, error, page, setPage, reload } = usePagedList<User>(
+    (p, signal) => adminApi.getUsers({ page: p, limit: DIRECTORY_PAGE_SIZE, q }, signal),
+    q,
+  );
+  const items = data?.items ?? [];
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <h3><i className="ti ti-users"></i> User Directory ({(data?.total ?? 0).toLocaleString()})</h3>
+        <div className="toolbar">
+          <input
+            type="search" className="form-input search-input" placeholder="Search name or email..."
+            aria-label="Search user directory" value={search} onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="card-body" style={{ padding: 0 }}>
+        {error ? (
+          <ErrorState message={error} onRetry={reload} />
+        ) : loading && !data ? (
+          <Skeleton height="36px" count={5} />
+        ) : (
+          <>
+            <div className="table-wrap" aria-busy={loading}>
+              <table className="table">
+                <thead>
+                  <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {items.map((u: User) => (
+                    <tr key={u._id}>
+                      <td style={{ fontWeight: 500 }}>{u.name}</td>
+                      <td className="text-muted">{u.email}</td>
+                      <td><span className={`badge ${u.role === 'admin' ? 'badge--warn' : 'badge--muted'}`}>{u.role}</span></td>
+                      <td><span className={`badge ${u.status === 'active' ? 'badge--success' : 'badge--danger'}`}>{u.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {items.length === 0 && <div className="empty-state">No users found.</div>}
+            {data && <Pager page={page} totalPages={data.totalPages} total={data.total} loading={loading} onPageChange={setPage} />}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export const SettingsPage: React.FC = () => {
-  const { user, addToast } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      const res = await adminApi.getUsers();
-      if (res.success && res.data) setUsers(res.data);
-    } catch {}
-    finally { setLoading(false) }
-  }, []);
-
-  useEffect(() => { if (user?.role === 'admin') fetchUsers() }, [fetchUsers, user]);
+  const { user } = useAuth();
 
   const roleColors: Record<string, string> = {
     admin: '#3b82f6',
@@ -98,28 +147,7 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {user?.role === 'admin' && (
-        <div className="card">
-          <div className="card-header"><h3><i className="ti ti-users"></i> User Directory ({users.length})</h3></div>
-          <div className="card-body" style={{ padding: 0 }}>
-            <table className="table">
-              <thead>
-                <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr>
-              </thead>
-              <tbody>
-                {users.map((u: User) => (
-                  <tr key={u._id}>
-                    <td style={{ fontWeight: 500 }}>{u.name}</td>
-                    <td className="text-muted">{u.email}</td>
-                    <td><span className="badge" style={{ background: roleColors[u.role], color: '#fff', borderRadius: 4, padding: '2px 8px', fontSize: 11 }}>{u.role}</span></td>
-                    <td><span style={{ color: u.status === 'active' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>{u.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {user?.role === 'admin' && <UserDirectory />}
     </div>
   );
 };

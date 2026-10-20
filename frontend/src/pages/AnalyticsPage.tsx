@@ -1,39 +1,47 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { adminApi } from '../services/api';
 import { ExtendedAnalytics } from '../types';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { useAuth, API_URL } from '../contexts/AuthContext';
+import { ErrorState } from '../components/common/ErrorState';
+import { useLatestSignal } from '../hooks/useLatestSignal';
+import { useVisibleInterval } from '../hooks/useVisibleInterval';
+import { useSocketRefetch } from '../hooks/useSocketRefetch';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement);
 
+const TASK_EVENTS = ['task.created', 'task.updated', 'task.deleted'];
+const TOP_USERS = 20;
+
 export const AnalyticsPage: React.FC = () => {
-  const { token } = useAuth();
   const [analytics, setAnalytics] = useState<ExtendedAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const nextSignal = useLatestSignal();
 
-  useEffect(() => {
-    loadAnalytics();
-    const interval = setInterval(loadAnalytics, 4000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
+    const signal = nextSignal();
     try {
-      const res = await adminApi.getAnalytics();
+      const res = await adminApi.getAnalytics(TOP_USERS, signal);
+      if (signal.aborted) return;
       setAnalytics(res.data || null);
-    } catch {
-      try {
-        const res = await fetch(`${API_URL}/analytics`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setAnalytics(json.data);
-      } catch {}
-    } finally { setLoading(false); }
-  };
+      setError(null);
+    } catch (err) {
+      if (!signal.aborted) setError(err instanceof Error ? err.message : 'Failed to load analytics');
+    } finally {
+      if (!signal.aborted) setLoading(false);
+    }
+  }, [nextSignal]);
+
+  useEffect(() => { loadAnalytics(); }, [loadAnalytics]);
+  // Aggregates are expensive: refresh on task events (coalesced 5s) and a 60s visible-tab fallback.
+  useSocketRefetch(TASK_EVENTS, loadAnalytics, 5000);
+  useVisibleInterval(loadAnalytics, 60_000);
 
   if (loading) return <LoadingSpinner message="Loading analytics..." />;
-  if (!analytics) return <div className="page-container"><p>No data available.</p></div>;
+  if (error && !analytics) return <div className="page-container"><ErrorState message={error} onRetry={loadAnalytics} /></div>;
+  if (!analytics) return <div className="page-container"><div className="empty-state">No data available.</div></div>;
 
   const { tasks, users } = analytics;
 
@@ -123,7 +131,7 @@ export const AnalyticsPage: React.FC = () => {
 
       {(analytics.userTaskStats && analytics.userTaskStats.length > 0) ? (
         <div className="card">
-          <div className="card-header"><h3>Tasks Per User</h3></div>
+          <div className="card-header"><h3>Tasks Per User (top {TOP_USERS})</h3></div>
           <div className="card-body" style={{ padding: 20 }}>
             <Bar data={userTaskData} options={chartOptions} />
           </div>

@@ -24,8 +24,7 @@ export const registerUser = async (
     throw new ConflictError('User already exists');
   }
 
-  const userCount = await User.countDocuments({});
-  const role = userCount === 0 ? 'admin' : 'user';
+  const role = (await User.exists({})) ? 'user' : 'admin'; // first account bootstraps the admin
 
   const user = await User.create({ name, email, password, role });
 
@@ -57,7 +56,7 @@ export const loginUser = async (
   }
 
   user.lastLogin = new Date();
-  await user.save();
+  await User.updateOne({ _id: user._id }, { lastLogin: user.lastLogin }); // no full-document save per login
 
   await logActivity(user._id.toString(), 'LOGIN', 'User logged in successfully');
 
@@ -91,7 +90,11 @@ export const getMe = async (userId: string) => {
 
 const DEMO_NAMES = ['Raj Patel', 'Priya Sharma', 'Amit Singh', 'Sneha Reddy', 'Vikram Joshi'];
 
+// Demo helpers hand out known passwords on a public endpoint. Set DEMO_MODE=false for any real rollout.
+const demoOff = () => process.env.DEMO_MODE === 'false';
+
 export const ensureDemoUsers = async () => {
+  if (demoOff()) return { message: 'Demo mode disabled', created: [], total: 0 };
   const existing = await User.find({ role: 'user' }).limit(5).select('name email');
   const created: string[] = [];
   if (existing.length < 5) {
@@ -110,6 +113,7 @@ export const ensureDemoUsers = async () => {
 };
 
 export const getDemoCredentials = async () => {
+  if (demoOff()) return [];
   // Get 5 real employees from different departments to show on login page
   const users = await User.find({ role: 'user', status: 'active' })
     .limit(5)

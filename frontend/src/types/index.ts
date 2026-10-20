@@ -78,7 +78,7 @@ export interface Analytics {
     inProgress: number;
     completionRate: number;
   };
-  userTaskStats: Array<{
+  userTaskStats: Array<{ // top-N only
     _id: string;
     name: string;
     email: string;
@@ -99,11 +99,6 @@ export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
-  items?: T[];
-  page?: number;
-  limit?: number;
-  total?: number;
-  totalPages?: number;
   serverTime: string;
 }
 
@@ -223,7 +218,8 @@ export interface Integration {
   description?: string;
 }
 
-export interface PaginatedResponse<T> {
+// List envelope: spread at the TOP LEVEL of the response next to `success`.
+export interface Paged<T> {
   items: T[];
   page: number;
   limit: number;
@@ -232,4 +228,30 @@ export interface PaginatedResponse<T> {
   serverTime: string;
 }
 
+export type PagedResponse<T> = { success: boolean; message?: string } & Paged<T>;
+
+export interface AdminDashboard {
+  users: Paged<User>; // first page only (10)
+  tasks: Paged<Task>;
+  logs: Paged<ActivityLog>;
+  metrics: Metrics;
+  analytics: Analytics;
+}
+
+export interface OrgChart {
+  departments: Department[];
+  users: User[]; // sample, max 500
+  departmentCounts: Record<string, number>; // keyed by department _id or 'none'
+}
+
+export type LeaderboardEntry = Pick<PerformanceScore, 'user' | 'performance'>;
+
 export type TabType = 'dashboard' | 'users' | 'tasks' | 'activity' | 'org' | 'approvals' | 'performance' | 'analytics' | 'templates' | 'settings' | 'integrations';
+
+// Server-aggregated headcount of the signed-in employee's own department (GET /org/my-department).
+export interface DeptStats {
+  total: number;
+  active: number;
+  inactive: number;
+  roles: Record<string, number>;
+}

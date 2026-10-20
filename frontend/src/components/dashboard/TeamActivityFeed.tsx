@@ -22,19 +22,15 @@ interface TeamActivityFeedProps {
 export const TeamActivityFeed = React.memo<TeamActivityFeedProps>(
   ({ logs, currentUserId, loading }) => {
     const safeLogs = Array.isArray(logs) ? logs : [];
-    const teamActivity = useMemo(() => {
-      // Filter team activities (exclude current user's own actions)
-      const filtered = safeLogs
-        .filter(log => {
-          // log.userId may be a Pick<User, '_id' | 'name' | 'email' | 'role'>; compare by _id
-          const userIdObj = log.userId as any;
-          return (userIdObj && userIdObj._id ? String(userIdObj._id) : String(userIdObj)) !== String(currentUserId);
-        })
+    // The server only returns the caller's own log entries to non-admins (privacy), so this is "my activity".
+    // currentUserId stays in the props for API compatibility with callers.
+    void currentUserId;
+    const teamActivity = useMemo(
+      () => [...safeLogs]
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 5); // Top 5 recent
-
-      return filtered;
-    }, [safeLogs, currentUserId]);
+        .slice(0, 5), // Top 5 recent
+      [safeLogs],
+    );
 
     const getActionIcon = (action: string): { icon: string; color: string } => {
       const iconMap: Record<string, { icon: string; color: string }> = {
@@ -75,7 +71,7 @@ export const TeamActivityFeed = React.memo<TeamActivityFeedProps>(
         }}>
           <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#fff', margin: '0 0 12px 0' }}>
             <i className="ti ti-activity" style={{ marginRight: '6px' }}></i>
-            Team Activity
+            My Recent Activity
           </h3>
 
           {teamActivity.length === 0 ? (
@@ -84,7 +80,7 @@ export const TeamActivityFeed = React.memo<TeamActivityFeedProps>(
               fontSize: '12px',
             }}>
               <i className="ti ti-inbox" style={{ fontSize: '24px', marginBottom: '8px', display: 'block' }}></i>
-              {loading ? 'Loading team activity...' : 'No recent team activity'}
+              {loading ? 'Loading activity...' : 'No recent activity'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth, API_URL } from '../../contexts/AuthContext';
 import { notificationsApi } from '../../services/api';
 import type { Notification as AppNotification } from '../../types';
+import { useVisibleInterval } from '../../hooks/useVisibleInterval';
+import { useSocketRefetch } from '../../hooks/useSocketRefetch';
+
+const NOTIFICATION_EVENTS = ['notification.new', 'notification.updated'];
 
 export const NotificationBell: React.FC = () => {
   const { token, user } = useAuth();
@@ -21,11 +25,9 @@ export const NotificationBell: React.FC = () => {
     } catch {}
   }, [token]);
 
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+  useSocketRefetch(NOTIFICATION_EVENTS, fetchNotifications);
+  useVisibleInterval(fetchNotifications, 60_000, !!token);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -60,8 +62,8 @@ export const NotificationBell: React.FC = () => {
 
   return (
     <div className="notification-bell" ref={ref}>
-      <button className="bell-btn" onClick={() => setOpen(!open)}>
-        <i className="ti ti-bell"></i>
+      <button type="button" className="bell-btn" aria-label="Notifications" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <i className="ti ti-bell" aria-hidden="true"></i>
         {unreadCount > 0 && <span className="badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
       {open && (
@@ -69,7 +71,7 @@ export const NotificationBell: React.FC = () => {
           <div className="dropdown-header">
             <span>Notifications</span>
             {unreadCount > 0 && (
-              <button className="mark-all-btn" onClick={handleMarkAllAsRead}>Mark all read</button>
+              <button type="button" className="mark-all-btn" onClick={handleMarkAllAsRead}>Mark all read</button>
             )}
           </div>
           <div className="notification-list">

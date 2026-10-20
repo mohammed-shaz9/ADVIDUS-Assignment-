@@ -33,7 +33,9 @@ export const getAgents = async (userRole: string) => {
   const query = userRole !== 'admin' ? { status: 'active' } : {};
   return Agent.find(query)
     .populate('creator', 'name email')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .limit(500)
+    .lean();
 };
 
 export const toggleAgentStatus = async (agentId: string, userId: string) => {

@@ -2,55 +2,75 @@ import PerformanceMetric from '../models/PerformanceMetric.js';
 import Task from '../models/Task.js';
 import User from '../models/User.js';
 
+const EMPTY = { score: 0, tasksCompleted: 0, tasksAssigned: 0, onTimeCompletion: 0, overdueTasks: 0, avgCompletionHours: 0 };
+
+// Pure: score = completion rate in %. ponytail: "on time" == completed until tasks carry due dates.
+export const toMetric = (total: number, completed: number) =>
+  total === 0
+    ? { ...EMPTY }
+    : {
+        score: Math.round((completed / total) * 100),
+        tasksCompleted: completed,
+        tasksAssigned: total,
+        onTimeCompletion: completed,
+        overdueTasks: total - completed,
+        avgCompletionHours: 0,
+      };
+
 export const calculateUserScore = async (userId: string) => {
-  const tasks = await Task.find({ owner: userId });
-  const total = tasks.length;
-  if (total === 0) return { score: 0, tasksCompleted: 0, tasksAssigned: 0, onTimeCompletion: 0, overdueTasks: 0, avgCompletionHours: 0 };
-
-  const completed = tasks.filter(t => t.status === 'completed');
-  const completedCount = completed.length;
-  const completionRate = completedCount / total;
-
-  const score = Math.round(completionRate * 100);
-  return { score, tasksCompleted: completedCount, tasksAssigned: total, onTimeCompletion: completedCount, overdueTasks: total - completedCount, avgCompletionHours: 0 };
+  const [total, completed] = await Promise.all([
+    Task.countDocuments({ owner: userId }),
+    Task.countDocuments({ owner: userId, status: 'completed' }),
+  ]);
+  return toMetric(total, completed);
 };
 
 export const getPerformanceForUser = async (userId: string) => {
-  const metric = await PerformanceMetric.findOne({ user: userId }).sort({ snapshotDate: -1 });
+  const metric = await PerformanceMetric.findOne({ user: userId }).sort({ snapshotDate: -1 }).lean();
   const user = await User.findById(userId).select('name email role').lean();
-  const performance = metric
-    ? { score: metric.score, tasksCompleted: metric.tasksCompleted, tasksAssigned: metric.tasksAssigned, onTimeCompletion: metric.onTimeCompletion, overdueTasks: metric.overdueTasks, avgCompletionHours: metric.avgCompletionHours }
-    : { score: 0, tasksCompleted: 0, tasksAssigned: 0, onTimeCompletion: 0, overdueTasks: 0, avgCompletionHours: 0 };
-  if (!metric) {
-    const computed = await calculateUserScore(userId);
-    Object.assign(performance, computed);
-    await PerformanceMetric.create({ user: userId, ...computed, period: 'daily', snapshotDate: new Date() });
+  if (metric) {
+    const { score, tasksCompleted, tasksAssigned, onTimeCompletion, overdueTasks, avgCompletionHours } = metric;
+    return { user, performance: { score, tasksCompleted, tasksAssigned, onTimeCompletion, overdueTasks, avgCompletionHours } };
   }
+  const performance = await calculateUserScore(userId);
+  await PerformanceMetric.create({ user: userId, ...performance, period: 'daily', snapshotDate: new Date() });
   return { user, performance };
 };
 
-export const getAllPerformance = async () => {
-  const [users, allMetrics] = await Promise.all([
-    User.find().select('name email role department').lean(),
-    PerformanceMetric.aggregate([
-      { $sort: { snapshotDate: -1 } },
-      { $group: { _id: '$user', metric: { $first: '$$ROOT' } } },
-    ]),
+// Leaderboard: latest snapshot per user, best first, capped. (60k rows in one response is not a page.)
+export const getAllPerformance = async (limit = 50) => {
+  const top = await PerformanceMetric.aggregate([
+    { $sort: { user: 1, snapshotDate: -1 } },
+    { $group: { _id: '$user', metric: { $first: '$$ROOT' } } },
+    { $sort: { 'metric.score': -1, _id: 1 } },
+    { $limit: Math.min(Math.max(limit, 1), 200) },
   ]);
-  const metricMap = new Map(allMetrics.map(m => [m._id.toString(), m.metric]));
-  const results = users.map(user => ({
-    user,
-    performance: metricMap.get(user._id.toString())
-      || { score: 0, tasksCompleted: 0, tasksAssigned: 0, onTimeCompletion: 0, overdueTasks: 0 },
-  }));
-  return results.sort((a: any, b: any) => b.performance.score - a.performance.score);
+  const users = await User.find({ _id: { $in: top.map((m) => m._id) } })
+    .select('name email role department')
+    .lean();
+  const byId = new Map(users.map((u) => [u._id.toString(), u]));
+  return top
+    .filter((m) => byId.has(m._id.toString()))
+    .map((m) => ({ user: byId.get(m._id.toString()), performance: m.metric }));
 };
 
+// One grouped scan + chunked bulk insert, instead of 2 queries per user.
 export const snapshotAllPerformance = async () => {
-  const users = await User.find();
-  for (const user of users) {
-    const computed = await calculateUserScore(user._id.toString());
-    await PerformanceMetric.create({ user: user._id, ...computed, period: 'daily', snapshotDate: new Date() });
+  const rows = await Task.aggregate([
+    {
+      $group: {
+        _id: '$owner',
+        total: { $sum: 1 },
+        done: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+      },
+    },
+  ]);
+  const snapshotDate = new Date();
+  for (let i = 0; i < rows.length; i += 5000) {
+    await PerformanceMetric.insertMany(
+      rows.slice(i, i + 5000).map((r) => ({ user: r._id, ...toMetric(r.total, r.done), period: 'daily', snapshotDate })),
+      { ordered: false }
+    );
   }
-  return { message: 'Performance snapshot taken' };
+  return { message: 'Performance snapshot taken', users: rows.length };
 };

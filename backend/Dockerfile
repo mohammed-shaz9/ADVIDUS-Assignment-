@@ -13,4 +13,5 @@ RUN npm run build
 
 EXPOSE 5050
 
-CMD ["node", "dist/server.js"]
+# Build missing indexes first (autoIndex is off in production), then serve.
+CMD ["sh", "-c", "node dist/syncIndexes.js && node dist/server.js"]

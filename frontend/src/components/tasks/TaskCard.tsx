@@ -11,7 +11,7 @@ interface TaskCardProps {
   isDragging: boolean;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({
+export const TaskCard = React.memo<TaskCardProps>(({
   task, onEdit, onDelete, onOpenConsole, onDragStart, onDragEnd, isDragging,
 }) => {
   return (
@@ -53,17 +53,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         <div className="task-actions">
           {task.assignedTo?.assigneeType === 'agent' && task.status === 'completed' && (
             <button
-              className="icon-btn" onClick={() => onOpenConsole(task)}
+              type="button" className="icon-btn" aria-label={`View terminal output for ${task.title}`} onClick={() => onOpenConsole(task)}
               style={{ width: '24px', height: '24px', color: 'var(--accent-purple)' }}
             >
               <i className="ti ti-terminal" style={{ fontSize: '12px' }}></i>
             </button>
           )}
-          <button className="icon-btn" onClick={() => onEdit(task)} style={{ width: '24px', height: '24px' }}>
-            <i className="ti ti-chevron-right" style={{ fontSize: '12px' }}></i>
+          <button type="button" className="icon-btn" aria-label={`Edit task ${task.title}`} onClick={() => onEdit(task)} style={{ width: '24px', height: '24px' }}>
+            <i className="ti ti-chevron-right" style={{ fontSize: '12px' }} aria-hidden="true"></i>
           </button>
           <button
-            className="icon-btn" onClick={() => onDelete(task._id)}
+            type="button" className="icon-btn" aria-label={`Delete task ${task.title}`} onClick={() => onDelete(task._id)}
             style={{ width: '24px', height: '24px', color: 'var(--accent-rose)' }}
           >
             <i className="ti ti-trash" style={{ fontSize: '12px' }}></i>
@@ -72,4 +72,5 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       </div>
     </div>
   );
-};
+});
+TaskCard.displayName = 'TaskCard';

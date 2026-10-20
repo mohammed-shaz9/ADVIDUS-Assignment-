@@ -6,11 +6,14 @@ services:
     plan: free
     rootDir: backend
     buildCommand: npm install && npm run build
-    startCommand: npm start
-    healthCheckPath: /api/auth/me
+    # `indexes` builds missing MongoDB indexes (autoIndex is off in production); no-op when they exist.
+    startCommand: npm run indexes && npm start
+    healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
+      - key: TRUST_PROXY
+        value: "1"
       - key: MONGO_URI
         sync: false
       - key: JWT_SECRET

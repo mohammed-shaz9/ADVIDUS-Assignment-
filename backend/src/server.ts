@@ -9,7 +9,10 @@ import jwt from 'jsonwebtoken';
 import { connectDB } from './config/db.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
-import { setIO, registerUserSocket, unregisterUserSocket } from './utils/realtime.js';
+import mongoose from 'mongoose';
+import { setIO } from './utils/realtime.js';
+import { getCachedUser, setCachedUser } from './utils/userCache.js';
+import { AuthUser } from './types/index.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import authRoutes from './routes/authRoutes.js';
@@ -19,6 +22,7 @@ process.on('unhandledRejection', (reason) => {
 });
 process.on('uncaughtException', (err) => {
   logger.error('Uncaught Exception', { message: err.message, stack: err.stack });
+  process.exit(1); // state is undefined after this; let the supervisor (Render/Docker) restart cleanly
 });
 import taskRoutes from './routes/taskRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
@@ -38,9 +42,9 @@ import { seedDefaults } from './services/settingsService.js';
 // Connect to Database
 await connectDB();
 
-// Auto-seed if database is empty
-const userCount = await User.countDocuments();
-if (userCount === 0) {
+// Auto-seed the small demo dataset if the database is empty (AUTO_SEED=false to disable)
+const hasUsers = await User.exists({});
+if (!hasUsers && process.env.AUTO_SEED !== 'false') {
   logger.info('Database empty — seeding...');
   await seed();
 }
@@ -50,6 +54,10 @@ await seedDefaults();
 
 const app = express();
 const server = http.createServer(app);
+
+// Behind Render/Nginx every request arrives from the proxy IP unless this is set,
+// which would put all users in one rate-limit bucket.
+if (env.trustProxy) app.set('trust proxy', env.trustProxy);
 
 // Security & performance middleware
 app.use(helmet());
@@ -100,6 +108,7 @@ app.use(errorHandler);
 // Socket.IO
 const io = new SocketIOServer(server, {
   path: '/ws',
+  maxHttpBufferSize: 1e5, // clients only receive; cap what they can send
   cors: {
     origin: env.corsOrigin,
     credentials: true,
@@ -115,10 +124,14 @@ io.use(async (socket, next) => {
 
     const token = header.split(' ')[1];
     const decoded = jwt.verify(token, env.jwtSecret) as { id: string };
-    const user = await User.findById(decoded.id).select('-password');
-
-    if (!user) return next(new Error('Not authorized, user not found'));
-    if (user.status === 'inactive') return next(new Error('Account inactive'));
+    let user = getCachedUser(decoded.id);
+    if (!user) {
+      const found = await User.findById(decoded.id).select('role status').lean();
+      if (!found) return next(new Error('Not authorized, user not found'));
+      if (found.status === 'inactive') return next(new Error('Account inactive'));
+      user = found as unknown as AuthUser;
+      setCachedUser(decoded.id, user);
+    }
 
     (socket as any).user = user;
     next();
@@ -127,15 +140,13 @@ io.use(async (socket, next) => {
   }
 });
 
+// Rooms: every user joins `user:<id>`; admins also join `admins`. Events are emitted to rooms only (utils/realtime.ts).
 io.on('connection', (socket) => {
-  const user = (socket as any).user;
+  const user = (socket as any).user as AuthUser | undefined;
   if (user) {
-    registerUserSocket(user._id.toString(), socket.id);
+    socket.join(`user:${user._id.toString()}`);
     if (user.role === 'admin') socket.join('admins');
   }
-  socket.on('disconnect', () => {
-    if (user) unregisterUserSocket(user._id.toString(), socket.id);
-  });
 });
 
 setIO(io);
@@ -143,5 +154,20 @@ setIO(io);
 server.listen(env.port, () => {
   logger.info(`Server running in ${env.nodeEnv} mode on port ${env.port}`);
 });
+
+// Graceful shutdown: stop accepting, let in-flight requests finish, close sockets + DB, then exit.
+const shutdown = (signal: string) => {
+  logger.info(`${signal} received, shutting down`);
+  const force = setTimeout(() => process.exit(1), 10_000);
+  force.unref();
+  io.close(() => {
+    server.close(async () => {
+      await mongoose.disconnect();
+      process.exit(0);
+    });
+  });
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 export default app;

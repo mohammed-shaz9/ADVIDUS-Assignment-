@@ -8,8 +8,10 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "seed": "tsx src/seed.ts",
-    "test": "node --experimental-vm-modules node_modules/.bin/vitest run",
-    "test:watch": "node --experimental-vm-modules node_modules/.bin/vitest",
+    "seed:bulk": "tsx src/seedBulk.ts",
+    "indexes": "node dist/syncIndexes.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "echo ok",
     "typecheck": "tsc --noEmit"
   },

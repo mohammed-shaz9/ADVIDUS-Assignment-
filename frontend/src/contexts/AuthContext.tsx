@@ -1,7 +1,10 @@
 import React, { createContext, useState, useEffect, useContext, useRef, useCallback, ReactNode } from 'react';
 import { User, Toast, ToastType } from '../types';
-import { authApi } from '../services/api';
+import type { Socket } from 'socket.io-client';
+import { authApi, ApiError } from '../services/api';
 import { cache } from '../utils/cache';
+import { createSocket } from '../utils/socket';
+import { useVisibleInterval } from '../hooks/useVisibleInterval';
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +12,7 @@ interface AuthContextType {
   loading: boolean;
   backgroundRefreshing: boolean;
   toasts: Toast[];
+  socket: Socket | null;
   theme: string;
   toggleTheme: () => void;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -169,10 +173,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     addToast('Logged out successfully.', 'info');
   }, [addToast]);
 
+  // One shared realtime connection per session. Server only sends events that concern this user (admins get all).
+  const [socket, setSocket] = useState<Socket | null>(null);
+  useEffect(() => {
+    if (!token) return;
+    const s = createSocket(API_URL, token);
+    s.on('user.status_changed', (e: { userId?: string; status?: string }) => {
+      if (e?.userId === userRef.current?._id && e.status !== 'active') {
+        logout();
+        addToast('Your account was deactivated or removed.', 'error');
+      }
+    });
+    setSocket(s);
+    return () => {
+      s.removeAllListeners();
+      s.disconnect();
+      setSocket(null);
+    };
+  }, [token, logout, addToast]);
+
+  // Session guard (fallback for missed socket events): paused while the tab is hidden.
+  const checkSession = useCallback(async () => {
+    try {
+      const res = await authApi.getMe();
+      if (res.data && res.data.status !== 'active') {
+        logout();
+        addToast('Account deactivated by administrator.', 'error');
+      }
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        logout();
+        addToast('Session terminated.', 'error');
+      }
+      // network / 5xx: keep session
+    }
+  }, [logout, addToast]);
+  useVisibleInterval(checkSession, 60_000, !!token);
+
   return (
     <AuthContext.Provider
       value={{
-        user, token, loading, backgroundRefreshing, toasts, theme,
+        user, token, loading, backgroundRefreshing, toasts, socket, theme,
         toggleTheme, login, register, logout, addToast, removeToast,
       }}
     >
